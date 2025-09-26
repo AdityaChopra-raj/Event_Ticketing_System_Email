@@ -46,7 +46,7 @@ div.stButton > button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# Centered input fields (Removed Email input as per PDF design for check-in)
+# Centered input fields
 st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 event_name = st.selectbox("Select Event", list(events.keys()))
 # Matches PDF Design: Enter Ticket ID
