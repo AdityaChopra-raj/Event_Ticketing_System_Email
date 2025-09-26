@@ -77,15 +77,18 @@ st.markdown("""
     font-family: 'Inter', sans-serif;
 }
 
-/* Page Header (Netflix Red) */
+/* *** SPACING FIX: AGGRESSIVE OVERRIDE ***
+    This uses !important and a negative margin to pull the content up 
+    over Streamlit's default container padding.
+*/
 h1 {
     text-align: center;
     color: #E50914; /* Netflix Red */
     font-size: 6em; 
     font-weight: 900;
     letter-spacing: 2px;
-    margin-top: 0px;       /* Tighter Spacing Fix */
-    margin-bottom: 5px;    /* Tighter Spacing Fix (reduced from 40px) */
+    margin-top: 0 !important;       
+    margin-bottom: -15px !important; /* Aggressive negative margin */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
@@ -93,7 +96,7 @@ h1 {
 
 /* Visual content container for image in the main grid */
 .event-image-container {
-    padding: 10px; /* Original padding restored */
+    padding: 10px; 
     position: relative;
     z-index: 5; 
     /* Softly enforce the 2:3 ratio */
@@ -115,7 +118,7 @@ h1 {
     border-radius: 8px;
     background: #222; 
     padding: 15px 5px; 
-    margin-bottom: 30px; /* Increased margin for better separation between rows of cards */
+    margin-bottom: 30px; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
     text-align: center; 
@@ -143,8 +146,8 @@ h1 {
 .detail-container {
     display: flex;
     gap: 30px;
-    padding: 30px; /* Increased padding inside the container */
-    margin-bottom: 40px; /* Added margin below the container to separate from the footer */
+    padding: 30px; 
+    margin-bottom: 40px; 
     background-color: #1a1a1a; 
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
@@ -175,13 +178,13 @@ h1 {
 .event-description-box h2 {
     color: #E50914; 
     margin-top: 0;
-    margin-bottom: 15px; /* Added gap below detail title */
+    margin-bottom: 15px; 
     font-size: 2.5em;
 }
 .event-description-box p {
     font-size: 1.1em;
     line-height: 1.6;
-    margin-bottom: 30px; /* Added gap below description paragraph */
+    margin-bottom: 30px; 
     color: white;
 }
 .event-description-box .detail-item strong {
@@ -192,7 +195,7 @@ h1 {
     background-color: #333;
     padding: 15px;
     border-radius: 8px;
-    margin-bottom: 30px; /* Added gap below stats box */
+    margin-bottom: 30px; 
     text-align: center;
     border-left: 5px solid #E50914;
     transition: all 0.3s;
@@ -206,7 +209,7 @@ div.stButton > button {
     padding: 10px 20px;
     font-size: 1em;
     border-radius: 6px;
-    margin-top: 15px; /* Slightly increased top margin */
+    margin-top: 15px; 
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
     font-weight: bold;
