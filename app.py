@@ -121,32 +121,37 @@ for i, (ename, data) in enumerate(events.items()):
     if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
         style = "transform: scale(1.6); z-index:10; transition: all 0.5s; margin:0 auto;"
         opacity = 1
+        show_heading_button = False  # hide heading & button
     elif st.session_state.view == "event_detail":
         style = "transform: scale(0.8); opacity:0; transition: all 0.5s;"
         opacity = 0
+        show_heading_button = False
     else:
         style = "transform: scale(1); transition: all 0.5s;"
         opacity = 1
+        show_heading_button = True
 
     # Event Card
-    col.markdown(f"""
-    <div class="event-card" style="{style}; opacity:{opacity};">
-        <img src="data:image/png;base64,{img_str}" />
-        <h4>{ename}</h4>
-    </div>
-    """, unsafe_allow_html=True)
+    card_html = f'<div class="event-card" style="{style}; opacity:{opacity};">'
+    card_html += f'<img src="data:image/png;base64,{img_str}" />'
+
+    if show_heading_button:
+        card_html += f'<h4>{ename}</h4>'  # heading text
+    card_html += '</div>'
+    col.markdown(card_html, unsafe_allow_html=True)
 
     # Button below card
-    if st.session_state.view == "events":
-        if col.button(f"Select {ename}", key=f"btn_{i}"):
-            st.session_state.selected_event = ename
-            st.session_state.view = "event_detail"
-            st.experimental_rerun()
-    if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
-        if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
-            st.session_state.show_verification = True
-            st.session_state.verify_event = ename
-            st.experimental_rerun()
+    if show_heading_button:
+        if st.session_state.view == "events":
+            if col.button(f"Select {ename}", key=f"btn_{i}"):
+                st.session_state.selected_event = ename
+                st.session_state.view = "event_detail"
+                st.experimental_rerun()
+        elif st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
+            if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
+                st.session_state.show_verification = True
+                st.session_state.verify_event = ename
+                st.experimental_rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
 
