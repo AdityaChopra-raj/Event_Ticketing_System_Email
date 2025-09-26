@@ -84,7 +84,7 @@ h1 {
     font-size: 6em; 
     font-weight: 900;
     letter-spacing: 2px;
-    margin-bottom: 40px; /* Increased gap below title */
+    margin-bottom: 15px; /* ADJUSTED: Reduced gap below title from 40px to 15px */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
