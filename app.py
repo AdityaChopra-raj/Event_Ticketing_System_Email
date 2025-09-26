@@ -33,9 +33,6 @@ def send_email(to_email, subject, body):
 # ------------------------ APP STATE & INITIALIZATION ------------------------
 if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
-# The selected event will now be driven by st.query_params
-# if "event_selected" not in st.session_state:
-#     st.session_state.event_selected = None
 if "mode" not in st.session_state:
     st.session_state.mode = None
 # This cache stores the current ticket status calculated from the blockchain, including customer data.
@@ -53,7 +50,7 @@ if event_selected and event_selected not in events:
     event_selected = None
 
 
-# ------------------------ NETFLIX-THEME STYLING ------------------------
+# ------------------------ NETFLIX-THEME STYLING (The Fix is Here) ------------------------
 st.markdown("""
 <style>
 /* Base Dark Theme & Font */
@@ -65,42 +62,53 @@ st.markdown("""
 
 /* Page Header (Netflix Red) */
 h1 {
-    /* Title size doubled and font changed to look like a logo */
     text-align: center;
     color: #E50914; /* Netflix Red */
-    font-size: 6em; /* Doubled from 3em */
+    font-size: 6em; 
     font-weight: 900;
     letter-spacing: 2px;
     margin-bottom: 20px;
-    font-family: 'Avenir', 'Arial Black', sans-serif; /* Logo-style font */
+    font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
-/* ----------------------- CLICKABLE CARD STYLES (UI/UX FOCUS) ----------------------- */
+/* ----------------------- FIX: ENFORCING 2:3 ASPECT RATIO ----------------------- */
 
-/* Visual content container for image in the main grid */
+/* 1. Main Grid Card Container */
 .event-image-container {
-    padding: 10px;
+    /* Critical: Set padding to 0 and use aspect-ratio strictly */
+    padding: 0;
     position: relative;
     z-index: 5; 
-    /* UI/UX FIX: Enforce 2:3 aspect ratio for all catalog posters */
-    aspect-ratio: 2 / 3; 
+    aspect-ratio: 2 / 3; /* Standard Portrait Poster Ratio */
     overflow: hidden; 
+    /* Force flex to help child elements stretch */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Image styling inside the container */
+/* 2. Aggressive Targeting for Streamlit Image Component (Data-testid) */
+/* Force the internal Streamlit wrapper to take 100% of the custom container's fixed height */
+.event-image-container [data-testid="stImage"] {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important; /* Ensure it respects height constraint */
+}
+
+/* 3. The actual image element */
 .event-image-container img {
-    border-radius: 4px 4px 0 0; /* Match Netflix style */
-    /* UI/UX FIX: Ensure image covers the fixed container size (cropping necessary parts) */
+    border-radius: 4px 4px 0 0;
+    /* Ensure image covers the full 2:3 fixed container size, cropping necessary parts */
     width: 100%;
     height: 100%;
     object-fit: cover; 
 }
 
 
-/* Event Title Card - Visual content container */
+/* Event Title Card - Adjusted to include top/bottom padding now removed from image container */
 .event-card {
     border-radius: 8px;
-    background: #222; /* Darker card background */
+    background: #222; 
     padding: 15px 5px; 
     margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
@@ -109,24 +117,24 @@ h1 {
     transition: transform 0.3s ease-in-out, box-shadow 0.3s;
 }
 
-/* Link/Title styling for the clickable text */
+/* Link/Title styling */
 .event-card a {
-    text-decoration: none !important; /* Remove link underline */
-    color: white !important; /* White text for contrast */
+    text-decoration: none !important; 
+    color: white !important; 
     font-weight: 700;
-    display: block; /* Make the entire div area clickable via the link inside */
+    display: block; 
 }
 
-/* Netflix Red Glow and Zoom on Hover - Applied to the visual element */
+/* Hover Effect */
 .event-card:hover {
-    transform: scale(1.05); /* Smooth zoom effect */
-    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6); /* Strong red glow on hover */
-    z-index: 6; /* Bring hovered card slightly forward */
-    background: #333; /* Slightly lighter background on hover */
+    transform: scale(1.05); 
+    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6); 
+    z-index: 6; 
+    background: #333; 
 }
 
 
-/* --- Detail View Styles --- */
+/* --- Detail View Styles (Also enforcing 2:3 ratio) --- */
 .detail-container {
     display: flex;
     gap: 30px;
@@ -144,9 +152,12 @@ h1 {
     height: auto;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
     transition: transform 0.3s;
-    
-    /* UI/UX FIX: Detail view image must also adhere to the 2:3 ratio */
+    /* CRITICAL: Detail view image must adhere to the 2:3 ratio */
     aspect-ratio: 2 / 3;
+}
+.event-image-card [data-testid="stImage"] {
+    width: 100% !important;
+    height: 100% !important;
 }
 .event-image-card img {
     width: 100%;
@@ -196,9 +207,9 @@ h1 {
 
 /* Standard Streamlit Button Styling (Red with black thin border) */
 div.stButton > button {
-    background-color: #E50914; /* Netflix Red */
+    background-color: #E50914; 
     color: white;
-    border: 1px solid black; /* Black thin border */
+    border: 1px solid black; 
     padding: 10px 20px;
     font-size: 1em;
     border-radius: 6px;
@@ -208,9 +219,9 @@ div.stButton > button {
     font-weight: bold;
 }
 div.stButton > button:hover {
-    background-color: #f6121d; /* Slightly lighter red on hover */
+    background-color: #f6121d; 
     transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(229, 9, 20, 0.6); /* Reduced shadow depth */
+    box-shadow: 0 4px 6px rgba(229, 9, 20, 0.6); 
 }
 
 .footer {position:fixed;bottom:10px;left:20px;font-size:16px;color:#E50914;}
@@ -244,7 +255,6 @@ def get_blockchain_stats():
 def show_events():
     """
     Renders the main event selection screen.
-    The Event Name text is now the clickable element via a markdown link.
     """
     st.session_state.mode = None
     
@@ -260,8 +270,7 @@ def show_events():
             
             try:
                 img = Image.open(edata["image"])
-                # st.image renders the image component, which is then constrained by the CSS 
-                # (aspect-ratio and object-fit: cover) to maintain uniformity.
+                # st.image renders the image component, which is then aggressively constrained by the CSS 
                 st.image(img, use_container_width=True)
             except FileNotFoundError:
                  # Placeholder ensures missing images still respect the 2:3 ratio
@@ -270,7 +279,6 @@ def show_events():
             st.markdown("</div>", unsafe_allow_html=True) 
             
             # 2. Clickable Title Card (The bottom part of the card, with hover effect)
-            # The title is wrapped in an <a> tag using markdown, pointing to the nav_url
             st.markdown(f"""
             <div class='event-card'>
                 <a href="{nav_url}">
@@ -393,7 +401,6 @@ def buy_tickets(event_name, remaining):
         })
         
         # 2. Mine a new block
-        # Using create_block as per the original structure, though the helper file uses mine_block
         st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"]) 
         
         st.success(f"Purchase Confirmed! Your Ticket ID is: **{ticket_id}**. Check your email.")
