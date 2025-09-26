@@ -228,3 +228,14 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                                 txn["scanned_count"] += num_entering
                                 events[selected_event]["tickets_scanned"] += num_entering
                                 remaining_after = txn["quantity"] - txn["sc
+                            else:
+                                txn["scanned_count"] += num_entering
+                                events[selected_event]["tickets_scanned"] += num_entering
+                                remaining_after = txn["quantity"] - txn["scanned_count"]
+                                st.success(f"✅ {num_entering} ticket(s) verified! {remaining_after} remaining under this Ticket ID for {selected_event}")
+                            st.experimental_rerun()
+                            break
+                    if found:
+                        break
+                if not found:
+                    st.error("❌ Ticket ID and Email do not match any record")
