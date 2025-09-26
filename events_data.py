@@ -1,5 +1,3 @@
-# events_data.py
-# Each event has: name, image path, capacity, tickets_scanned
 events = {
     "Navratri Pooja": {
         "image": "images/navratri.jpg",
