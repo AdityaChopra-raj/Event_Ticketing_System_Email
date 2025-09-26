@@ -5,17 +5,18 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import time
+import json # Used by imported blockchain
 
 # IMPORT FIX: Centralize Blockchain and helpers
 from blockchain import Blockchain, get_ticket_status
 from events_data import events 
 
 # ------------------------ EMAIL FUNCTION ------------------------
+# NOTE: This uses the correct secrets from secrets.toml
 EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
 
 def send_email(to_email, subject, body):
-    # (Email function remains the same)
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = to_email
@@ -27,14 +28,14 @@ def send_email(to_email, subject, body):
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
     except Exception as e:
-        st.error(f"Error sending email: Check secrets.toml and internet connection. ({e})")
+        st.error(f"Error sending email: Check secrets.toml, App Password, and internet connection. ({e})")
 
 
 # ------------------------ APP STATE ------------------------
 if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
-# FIX: The 'tickets' dict is no longer the single source of truth, 
-# but we use it as a cache/lookup for purchased ticket details
+
+# FIX: Cache for ticket details, populated by reading the chain
 if "purchased_tickets_cache" not in st.session_state:
     st.session_state.purchased_tickets_cache = {}
 
@@ -43,7 +44,8 @@ if "event_selected" not in st.session_state:
 if "mode" not in st.session_state:
     st.session_state.mode = None
 
-# FIX: Removed redundant local EVENTS dict
+# FIX: Removed redundant local EVENTS dict and Blockchain class
+
 
 st.set_page_config(page_title="Event Ticket Portal", layout="wide")
 
@@ -77,7 +79,7 @@ st.markdown("<h1 style='text-align:center;color:#E50914;'>Event Ticket Portal</h
 
 # ------------------------ HELPER FUNCTIONS ------------------------
 def capacity_info(event_name):
-    # FIX: Uses the blockchain reading function
+    # FIX: Use get_ticket_status to read blockchain
     _, scanned, remaining, _, purchased_tickets_cache = get_ticket_status(st.session_state.blockchain, event_name)
     st.session_state.purchased_tickets_cache = purchased_tickets_cache # Update cache
     return remaining, scanned
@@ -103,8 +105,7 @@ def show_events():
     for idx, (ename, edata) in enumerate(events.items()):
         with cols[idx]:
             try:
-                # FIX: Image path now assumes 'images/' prefix from events_data.py
-                img = Image.open(edata["image"]) 
+                img = Image.open(edata["image"])
                 st.image(img, use_column_width=True)
             except FileNotFoundError:
                  st.warning(f"Image not found for {ename}. Check the 'images/' folder.")
@@ -153,7 +154,7 @@ def buy_tickets(event_name, remaining):
     # Matches PDF Design inputs: Name, Email, Phone Number, No. of Tickets
     name = st.text_input("Name", key="buy_name")
     email = st.text_input("Email", key="buy_email")
-    phone_number = st.text_input("Phone Number", key="buy_phone")
+    phone_number = st.text_input("Phone Number", key="buy_phone") # ADDED PHONE NUMBER
     qty = st.number_input("No. of Tickets (max 10)", min_value=1, max_value=10, value=1, key="buy_qty")
     
     if st.button("Confirm Purchase", key="confirm_purchase"):
@@ -165,13 +166,13 @@ def buy_tickets(event_name, remaining):
         
         # 1. Add PURCHASE transaction to the blockchain
         st.session_state.blockchain.add_transaction({
-            "type": "PURCHASE", # Added type for auditing
+            "type": "PURCHASE", 
             "ticket_id": ticket_id, 
             "event": event_name, 
             "quantity": qty, 
             "holder": name,
             "email": email,
-            "phone_number": phone_number, # Added Phone Number
+            "phone_number": phone_number,
             "timestamp": time.time()
         })
         
@@ -187,8 +188,8 @@ def buy_tickets(event_name, remaining):
 
 
 def verify_tickets(event_name):
-    st.subheader("Check-In") # Matches PDF Design: Check-In
-    # Matches PDF Design inputs
+    st.subheader("Check-In")
+    # Matches PDF Design inputs: Ticket ID and No. of People Entering
     ticket_id = st.text_input("Enter Ticket ID", key="verify_id").upper()
     num_entering = st.number_input("No. of People Entering", min_value=1, value=1, key="verify_num")
     
@@ -196,8 +197,6 @@ def verify_tickets(event_name):
         # 1. Fetch current status by reading the blockchain
         _, _, _, ticket_details, purchased_tickets_cache = get_ticket_status(st.session_state.blockchain, event_name)
         t_status = ticket_details.get(ticket_id)
-        
-        # Lookup purchase details from the cache populated by get_ticket_status
         t_info = purchased_tickets_cache.get(ticket_id) 
 
         if not t_status or t_info["event"] != event_name:
