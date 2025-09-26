@@ -5,45 +5,14 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import time
-import hashlib
 import json
 
-# ------------------------ BLOCKCHAIN ------------------------
-class Blockchain:
-    def __init__(self):
-        self.chain = []
-        self.pending_transactions = []
-        self.create_block(previous_hash="0")
-
-    def create_block(self, previous_hash: str):
-        block = {
-            "index": len(self.chain) + 1,
-            "timestamp": time.time(),
-            "transactions": self.pending_transactions,
-            "previous_hash": previous_hash,
-            "hash": ""
-        }
-        block["hash"] = self.hash_block(block)
-        self.pending_transactions = []
-        self.chain.append(block)
-        return block
-
-    def add_transaction(self, transaction: dict):
-        self.pending_transactions.append(transaction)
-        return self.last_block["index"] + 1
-
-    @property
-    def last_block(self):
-        return self.chain[-1]
-
-    @staticmethod
-    def hash_block(block: dict) -> str:
-        temp = block.copy()
-        temp["hash"] = ""
-        return hashlib.sha256(json.dumps(temp, sort_keys=True).encode()).hexdigest()
-
+# Import the centralized classes and data
+from blockchain import Blockchain
+from events_data import events
 
 # ------------------------ EMAIL FUNCTION ------------------------
+# NOTE: Update your secrets.toml with the actual password before deployment
 EMAIL_ADDRESS = st.secrets["email"]["address"]
 EMAIL_PASSWORD = st.secrets["email"]["password"]
 
@@ -59,25 +28,22 @@ def send_email(to_email, subject, body):
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
     except Exception as e:
-        st.error(f"Error sending email: {e}")
+        # Simplified error handling for Streamlit demo
+        st.error(f"Error sending email: Check your secrets.toml and internet connection. ({e})")
 
 
 # ------------------------ APP STATE ------------------------
 if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
-if "tickets" not in st.session_state:
-    st.session_state.tickets = {}  # ticket_id -> {event, name, qty, verified, email}
+# The 'purchased_tickets' dict stores basic ticket info for quick lookup (e.g., email for verification updates)
+if "purchased_tickets" not in st.session_state:
+    st.session_state.purchased_tickets = {} 
+
 if "event_selected" not in st.session_state:
     st.session_state.event_selected = None
 if "mode" not in st.session_state:
     st.session_state.mode = None
 
-EVENTS = {
-    "Navratri Pooja": {"capacity": 150, "image": "navratri.jpg"},
-    "Diwali Dance": {"capacity": 150, "image": "diwali.jpg"},
-    "Freshers": {"capacity": 150, "image": "freshers.jpg"},
-    "Ravan Dehan": {"capacity": 150, "image": "ravan.jpg"}
-}
 
 st.set_page_config(page_title="Event Ticket Portal", layout="wide")
 
@@ -96,26 +62,68 @@ body {background-color:#141414;color:white;}
 st.markdown("<h1 style='text-align:center;color:#E50914;'>Event Ticket Portal</h1>", unsafe_allow_html=True)
 
 
-# ------------------------ HELPER FUNCTIONS ------------------------
+# ------------------------ HELPER FUNCTIONS (The CORE FIX) ------------------------
+def get_ticket_status(event_name):
+    """
+    Calculates total purchased, scanned, and remaining capacity by reading the blockchain.
+    This is the single source of truth for the app.
+    """
+    total_capacity = events[event_name]["capacity"]
+    total_purchased = 0
+    total_scanned = 0
+    
+    # Store ticket status: ticket_id -> {'qty': x, 'scanned': y}
+    ticket_details = {} 
+
+    for block in st.session_state.blockchain.chain:
+        for txn in block["transactions"]:
+            if txn.get("event") == event_name:
+                ticket_id = txn.get("ticket_id")
+                if not ticket_id:
+                    continue # Skip invalid transactions
+
+                # PURCHASE Transaction
+                if txn.get("type") == "PURCHASE":
+                    qty = txn["quantity"]
+                    total_purchased += qty
+                    # Initialize ticket status
+                    ticket_details[ticket_id] = {"qty": qty, "scanned": 0}
+                    # Update quick lookup table
+                    st.session_state.purchased_tickets[ticket_id] = {
+                        "event": event_name, "name": txn.get("holder", "N/A"), "qty": qty, "email": txn.get("email", "N/A")
+                    }
+
+                # VERIFY Transaction (The new, immutable event)
+                elif txn.get("type") == "VERIFY":
+                    num_entering = txn.get("num_entering", 0)
+                    
+                    if ticket_id in ticket_details:
+                        ticket_details[ticket_id]["scanned"] += num_entering
+                        total_scanned += num_entering
+                    # If a VERIFY txn exists for a ticket_id that hasn't PURCHASED, it will be ignored here.
+
+    remaining_capacity = total_capacity - total_purchased
+    
+    return total_purchased, total_scanned, remaining_capacity, ticket_details
+
 def capacity_info(event_name):
-    total = EVENTS[event_name]["capacity"]
-    scanned = 0
-    purchased = 0
-    for txn in st.session_state.tickets.values():
-        if txn["event"] == event_name:
-            purchased += txn["qty"]
-            scanned += txn["verified"]
-    remaining = total - purchased
+    """Simple wrapper for the UI display."""
+    _, scanned, remaining, _ = get_ticket_status(event_name)
     return remaining, scanned
+
 
 # ------------------------ UI FUNCTIONS ------------------------
 def show_events():
     st.session_state.mode = None
-    cols = st.columns(len(EVENTS))
-    for idx, (ename, edata) in enumerate(EVENTS.items()):
+    cols = st.columns(len(events))
+    for idx, (ename, edata) in enumerate(events.items()):
         with cols[idx]:
-            img = Image.open(edata["image"])
-            st.image(img, use_column_width=True)
+            try:
+                img = Image.open(edata["image"])
+                st.image(img, use_column_width=True)
+            except FileNotFoundError:
+                 st.warning(f"Image not found for {ename}")
+            
             st.markdown(f"<div class='event-card'><h3 style='color:white'>{ename}</h3></div>", unsafe_allow_html=True)
             if st.button(f"Select {ename}", key=f"select_{ename}"):
                 st.session_state.event_selected = ename
@@ -134,16 +142,16 @@ def show_event_actions(event_name):
         with c2:
             if st.button("Verify Ticket"):
                 st.session_state.mode = "verify"
-        if st.button("⬅ Back"):
+        if st.button("⬅ Back to Events"):
             st.session_state.event_selected = None
             st.experimental_rerun()
     else:
-        if st.button("⬅ Back"):
+        if st.button("⬅ Back to Actions"):
             st.session_state.mode = None
         if st.session_state.mode == "buy":
             buy_tickets(event_name, remaining)
         elif st.session_state.mode == "verify":
-            verify_tickets(event_name)
+            verify_tickets_logic(event_name)
 
 
 def buy_tickets(event_name, remaining):
@@ -151,42 +159,82 @@ def buy_tickets(event_name, remaining):
     name = st.text_input("Name", key="buy_name")
     email = st.text_input("Email", key="buy_email")
     qty = st.number_input("Number of Tickets (max 10)", min_value=1, max_value=10, value=1, key="buy_qty")
+    
     if st.button("Confirm Purchase", key="confirm_purchase"):
         if qty > remaining:
             st.error("Not enough remaining capacity")
             return
+            
         ticket_id = str(uuid.uuid4())[:8].upper()
-        st.session_state.tickets[ticket_id] = {
-            "event": event_name, "name": name, "qty": qty, "verified": 0, "email": email
-        }
+        
+        # 1. Add PURCHASE transaction to the blockchain
         st.session_state.blockchain.add_transaction({
-            "ticket_id": ticket_id, "event": event_name, "quantity": qty, "holder": name
+            "type": "PURCHASE", 
+            "ticket_id": ticket_id, 
+            "event": event_name, 
+            "quantity": qty, 
+            "holder": name,
+            "email": email, 
+            "timestamp": time.time()
         })
+        
+        # 2. Mine a new block
         st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"])
+        
         st.success(f"Purchase Confirmed! Ticket ID: {ticket_id}")
+        
+        # 3. Send email confirmation
         body = (f"Hello {name},\n\nYou purchased {qty} ticket(s) for {event_name}.\n"
                 f"Ticket ID: {ticket_id}\n\nPresent this ID at the venue for verification.")
         send_email(email, f"{event_name} Ticket Confirmation", body)
 
 
-def verify_tickets(event_name):
+def verify_tickets_logic(event_name):
     st.subheader("Verify Ticket ID")
-    ticket_id = st.text_input("Enter Ticket ID", key="verify_id")
+    ticket_id = st.text_input("Enter Ticket ID", key="verify_id").upper()
     num_entering = st.number_input("Number of people entering", min_value=1, value=1, key="verify_num")
+    
     if st.button("Verify", key="verify_btn"):
-        t = st.session_state.tickets.get(ticket_id)
-        if not t or t["event"] != event_name:
-            st.error("Invalid Ticket ID for this event.")
+        # 1. Fetch current status by recalculating from the blockchain
+        _, _, _, ticket_details = get_ticket_status(event_name)
+        
+        t_status = ticket_details.get(ticket_id)
+        t_info = st.session_state.purchased_tickets.get(ticket_id)
+
+        if not t_status or t_info["event"] != event_name:
+            st.error("❌ Invalid Ticket ID or Ticket ID for a different event.")
             return
-        remaining_to_use = t["qty"] - t["verified"]
+
+        remaining_to_use = t_status["qty"] - t_status["scanned"]
+        
+        if remaining_to_use <= 0:
+            st.error("❌ Ticket has already been fully used.")
+            return
+            
         if num_entering > remaining_to_use:
-            st.error(f"Only {remaining_to_use} tickets remain for this Ticket ID.")
+            st.error(f"❌ Only {remaining_to_use} tickets remain for this Ticket ID (Used: {t_status['scanned']}/{t_status['qty']}).")
             return
-        t["verified"] += num_entering
-        st.success(f"Verified {num_entering} guest(s). Remaining: {t['qty'] - t['verified']}")
-        body = (f"Hello {t['name']},\n\n{num_entering} guest(s) used your Ticket ID {ticket_id} for {event_name}.\n"
-                f"Remaining tickets: {t['qty'] - t['verified']}")
-        send_email(t["email"], f"{event_name} Ticket Verification Update", body)
+            
+        # 2. Add VERIFY transaction to the blockchain (The CRITICAL STEP)
+        st.session_state.blockchain.add_transaction({
+            "type": "VERIFY", 
+            "ticket_id": ticket_id, 
+            "event": event_name, 
+            "num_entering": num_entering,
+            "verifier": "Venue Gate 1", 
+            "timestamp": time.time()
+        })
+        
+        # 3. Mine a new block
+        st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"])
+        
+        # 4. Success feedback and email
+        new_remaining = remaining_to_use - num_entering
+        st.success(f"✅ Verified {num_entering} guest(s). Remaining: {new_remaining}")
+        
+        body = (f"Hello {t_info['name']},\n\n{num_entering} guest(s) used your Ticket ID {ticket_id} for {event_name}.\n"
+                f"Remaining tickets: {new_remaining}")
+        send_email(t_info["email"], f"{event_name} Ticket Verification Update", body)
 
 
 # ------------------------ PAGE FLOW ------------------------
