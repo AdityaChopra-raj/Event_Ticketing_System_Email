@@ -2,16 +2,16 @@ from typing import List, Dict, Any
 import time
 import hashlib
 import json
+from events_data import events
 
 class Blockchain:
-    """A simple blockchain to track ticket purchases and verification logs."""
+    """A single, centralized blockchain to track purchases and verification logs."""
 
     def __init__(self):
         self.chain: List[Dict[str, Any]] = []
         self.pending_transactions: List[Dict[str, Any]] = []
         self.create_block(previous_hash="0") # Create the genesis block
 
-    # Renamed mine_block to create_block for consistency with app.py's prior implementation
     def create_block(self, previous_hash: str):
         """Mines a new block and adds it to the chain."""
         block = {
@@ -21,32 +21,66 @@ class Blockchain:
             "previous_hash": previous_hash,
             "hash": ""
         }
-        # Calculate hash before appending
+        # CRITICAL FIX: Use the deterministic hashing
         block["hash"] = self.hash_block(block)
         self.pending_transactions = []
         self.chain.append(block)
         return block
 
     def add_transaction(self, transaction: dict):
-        """Adds a new transaction (purchase or verification) to the list of pending transactions."""
+        """Adds a new transaction (purchase or verification) to the pending list."""
         self.pending_transactions.append(transaction)
-        # Return the index of the block this transaction will be added to
-        return self.last_block["index"] + 1
+        return self.chain[-1]["index"] + 1
 
     @property
     def last_block(self):
-        """Returns the last block in the chain."""
         return self.chain[-1]
 
     @staticmethod
     def hash_block(block: Dict[str, Any]) -> str:
-        """
-        Creates a SHA-256 hash of a Block.
-        FIX: Uses json.dumps with sort_keys=True for deterministic hashing.
-        """
+        """Creates a SHA-256 hash using deterministic JSON serialization."""
         temp = block.copy()
-        # Ensure the 'hash' key is not included in the hash calculation
         temp.pop("hash", None)
-        # CRITICAL FIX for non-deterministic hashing
         block_string = json.dumps(temp, sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
+
+def get_ticket_status(blockchain_instance, event_name):
+    """
+    Reads the blockchain to calculate total purchased, scanned, and remaining capacity.
+    This replaces the mutable state in st.session_state.tickets and events_data.py.
+    """
+    total_capacity = events[event_name]["capacity"]
+    total_purchased = 0
+    total_scanned = 0
+    ticket_details = {} # ticket_id -> {'qty': x, 'scanned': y}
+    purchased_tickets_cache = {} # ticket_id -> {details} for email lookup
+
+    for block in blockchain_instance.chain:
+        for txn in block["transactions"]:
+            if txn.get("event") == event_name:
+                ticket_id = txn.get("ticket_id")
+                if not ticket_id: continue
+
+                # PURCHASE Transaction
+                if txn.get("type") == "PURCHASE":
+                    qty = txn["quantity"]
+                    total_purchased += qty
+                    ticket_details[ticket_id] = {"qty": qty, "scanned": 0}
+                    purchased_tickets_cache[ticket_id] = {
+                        "event": event_name, 
+                        "name": txn.get("holder", "N/A"), 
+                        "qty": qty, 
+                        "email": txn.get("email", "N/A"),
+                        "phone": txn.get("phone_number", "N/A")
+                    }
+
+                # VERIFY Transaction (Immutable Log)
+                elif txn.get("type") == "VERIFY":
+                    num_entering = txn.get("num_entering", 0)
+                    if ticket_id in ticket_details:
+                        ticket_details[ticket_id]["scanned"] += num_entering
+                        total_scanned += num_entering
+
+    remaining_capacity = total_capacity - total_purchased
+    
+    return total_purchased, total_scanned, remaining_capacity, ticket_details, purchased_tickets_cache
