@@ -545,12 +545,14 @@ def verify_tickets(event_name):
 
 def show_admin_audit():
     """
-    Renders a detailed view of the entire blockchain ledger for auditing.
+    Renders a detailed view of the entire blockchain ledger for auditing, 
+    including a downloadable CSV of all transactions.
     """
     st.subheader("🔒 Blockchain Audit Ledger")
     st.markdown("---")
 
     blockchain_data = st.session_state.blockchain.chain
+    all_txns_for_display = []
     
     # Back button to return to the main event list
     if st.button("⬅ Back to Events Dashboard"):
@@ -562,6 +564,61 @@ def show_admin_audit():
         st.info("The blockchain is currently empty (only the genesis block exists).")
         return
 
+    # ------------------ 1. Gather ALL Transactions for Report and Display ------------------
+    for block in blockchain_data:
+        block_index = block['index']
+        block_hash = block['hash']
+        block_prev_hash = block['previous_hash']
+        
+        for txn in block["transactions"]:
+            # Combine common and type-specific fields
+            txn_data = {
+                "Block Index": block_index,
+                "Transaction Type": txn.get("type", "N/A"),
+                "Event Name": txn.get("event", "N/A"),
+                "Ticket ID": txn.get("ticket_id", "N/A"),
+                # For PURCHASE, this is the quantity; for VERIFY, it's num_entering
+                "Quantity/Guests": txn.get("quantity", txn.get("num_entering", 0)), 
+                "Customer Name": txn.get("holder", "N/A"), # Only present in PURCHASE
+                "Customer Email": txn.get("email", "N/A"), # Only present in PURCHASE
+                "Verifier": txn.get("verifier", "N/A"), # Only present in VERIFY
+                "Timestamp (Unix)": txn.get("timestamp", 0),
+                "Time (Readable)": time.ctime(txn.get("timestamp", 0)),
+                "Block Hash": block_hash,
+                "Previous Block Hash": block_prev_hash
+            }
+            all_txns_for_display.append(txn_data)
+
+    df_all_txns = pd.DataFrame(all_txns_for_display)
+    
+    # ------------------ 2. Download Button ------------------
+    if not df_all_txns.empty:
+        csv = df_all_txns.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download All Transactions Data (CSV)",
+            data=csv,
+            file_name='blockchain_event_audit.csv',
+            mime='text/csv',
+            help="Download a CSV file containing every transaction recorded on the blockchain."
+        )
+
+    st.markdown("### All Recorded Transactions (Audit Table)")
+    
+    if df_all_txns.empty:
+         st.info("No purchase or check-in transactions have been recorded yet.")
+    else:
+        # Display the full, clean DataFrame 
+        st.dataframe(
+            df_all_txns.drop(columns=["Timestamp (Unix)"]), # Drop Unix timestamp for cleaner view
+            use_container_width=True,
+            # Set the order for better readability
+            column_order=["Block Index", "Transaction Type", "Time (Readable)", "Event Name", "Ticket ID", "Quantity/Guests", "Customer Name", "Customer Email", "Verifier"]
+        )
+
+    st.markdown("---")
+    st.markdown("### Block-by-Block Detail")
+    
+    # ------------------ 3. Block-by-Block Detailed View ------------------
     # Iterate through blocks in reverse order (most recent first)
     for i, block in enumerate(reversed(blockchain_data)):
         # Calculate the display index 
@@ -574,7 +631,7 @@ def show_admin_audit():
             st.code(f"Hash: {block['hash']}", language='text')
             st.code(f"Previous Hash: {block['previous_hash']}", language='text')
             
-            st.markdown("#### Transactions:")
+            st.markdown("#### Transactions Contained in this Block:")
             
             if block["transactions"]:
                 # Format transactions for display in a pandas DataFrame
