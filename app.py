@@ -84,6 +84,7 @@ if st.session_state.view == "event_detail":
         st.session_state.view = "events"
         st.session_state.selected_event = None
         st.session_state.show_verification = False
+        st.experimental_rerun()
 
 # --- Display Event Cards ---
 st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
@@ -125,30 +126,45 @@ for i, (ename, data) in enumerate(events.items()):
         if col.button(f"Select {ename}", key=f"btn_{i}"):
             st.session_state.selected_event = ename
             st.session_state.view = "event_detail"
+            st.experimental_rerun()
 
     if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
         if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
             st.session_state.show_verification = True
             st.session_state.verify_event = ename
+            st.experimental_rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
 
 # --- Event Detail Section ---
 if st.session_state.view == "event_detail" and st.session_state.selected_event:
     selected_event = st.session_state.selected_event
+
     st.markdown(f"""
     <h2 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
                font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>
                {selected_event} Details</h2>
     """, unsafe_allow_html=True)
 
+    # --- Show real-time counts ---
+    st.markdown(f"""
+    <div style='text-align:center; margin-bottom:15px;'>
+        <span style='color:#E50914; font-weight:bold; margin-right:20px;'>
+            Tickets Scanned: {events[selected_event]['tickets_scanned']}
+        </span>
+        <span style='color:#E50914; font-weight:bold;'>
+            Remaining Capacity: {events[selected_event]['capacity']}
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+
     # --- Buy Ticket ---
     st.markdown("### Enter Your Details to Buy Ticket")
-    name = st.text_input("Name")
-    phone = st.text_input("Phone Number")
-    email = st.text_input("Email")
-    uid = st.text_input("Unique ID (UID)")
-    num_tickets = st.number_input("Number of Tickets (Max 10)", min_value=1, max_value=10, step=1)
+    name = st.text_input("Name", key="name")
+    phone = st.text_input("Phone Number", key="phone")
+    email = st.text_input("Email", key="email")
+    uid = st.text_input("Unique ID (UID)", key="uid")
+    num_tickets = st.number_input("Number of Tickets (Max 10)", min_value=1, max_value=10, step=1, key="num_tickets")
 
     if st.button("Confirm Purchase", key="confirm_purchase"):
         if not name or not phone or not email or not uid:
@@ -182,6 +198,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                 file_name=f"{selected_event}_ticket_{ticket_id}.txt",
                 mime="text/plain"
             )
+            st.experimental_rerun()  # Refresh counts
 
 # --- Verification Section ---
 if st.session_state.show_verification:
@@ -197,8 +214,7 @@ if st.session_state.show_verification:
                                 index=list(events.keys()).index(st.session_state.get("verify_event", list(events.keys())[0])))
     verify_email = st.text_input("Enter Email for Verification", key="verify_email")
     verify_ticket_id = st.text_input("Enter Ticket ID", key="verify_ticket_id")
-
-    num_entering = st.number_input("Number of Guests Entering", min_value=1, max_value=10, step=1)
+    num_entering = st.number_input("Number of Guests Entering", min_value=1, max_value=10, step=1, key="num_entering")
 
     if st.button("Verify Ticket", key="verify_ticket"):
         if not verify_email or not verify_ticket_id:
@@ -223,6 +239,7 @@ if st.session_state.show_verification:
                             events[verify_event]["tickets_scanned"] += num_entering
                             remaining_after = txn["quantity"] - txn["scanned_count"]
                             st.success(f"✅ {num_entering} ticket(s) verified! {remaining_after} remaining under this Ticket ID for {verify_event}")
+                        st.experimental_rerun()  # Refresh counts
                         break
                 if found:
                     break
