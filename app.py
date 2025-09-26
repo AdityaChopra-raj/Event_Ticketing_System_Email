@@ -113,12 +113,11 @@ for i, (ename, data) in enumerate(events.items()):
         style = "transform: scale(1); transition: all 0.5s;"
         opacity = 1
 
+    # --- Only show image and event name in the card ---
     col.markdown(f"""
     <div class="event-card" style="{style}; opacity:{opacity};">
         <img src="data:image/png;base64,{img_str}" />
         <h4 style='margin:5px 0 2px 0;color:white;'>{ename}</h4>
-        <p style='font-size:12px;margin:2px 0;color:#E50914;'>Tickets Scanned: <b>{data['tickets_scanned']}</b></p>
-        <p style='font-size:12px;margin:2px 0;color:#E50914;'>Remaining Capacity: <b>{data['capacity']}</b></p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -146,7 +145,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                {selected_event} Details</h2>
     """, unsafe_allow_html=True)
 
-    # --- Show real-time counts ---
+    # --- Show real-time counts only here ---
     st.markdown(f"""
     <div style='text-align:center; margin-bottom:15px;'>
         <span style='color:#E50914; font-weight:bold; margin-right:20px;'>
