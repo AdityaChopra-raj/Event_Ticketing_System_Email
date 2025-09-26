@@ -5,7 +5,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import time
-
 # IMPORT FIX: Centralized Blockchain and helpers
 from blockchain import Blockchain, get_ticket_status
 from events_data import events 
@@ -62,20 +61,21 @@ h1 {
     font-size: 3em;
     font-weight: 700;
     letter-spacing: 1px;
+    margin-bottom: 20px;
 }
 
-/* ----------------------- FIX: HIDE BUTTON GAP & MAKE CARD CLICKABLE ----------------------- */
+/* ----------------------- CRITICAL FIX: HIDE BUTTON & MAKE CARD CLICKABLE ----------------------- */
 
 /* Target the Streamlit button wrapper div inside the column (st.button is the first element) */
 /* This hack collapses the space the button takes up while keeping it clickable. */
 .stApp div[data-testid^="stColumn"] div.stButton:has(button[key^="select_"]) {
     padding: 0 !important;
     margin: 0 !important;
-    height: 1px; /* Minimal height so the click area is still present */
+    height: 1px; /* Minimal height to maintain element structure */
     position: relative;
     z-index: 10; /* Ensure button is on top for clicking */
-    opacity: 0.01; /* Minimal opacity to be safe */
-    overflow: hidden; /* Ensure no text label leaks */
+    opacity: 0; /* Fully transparent now */
+    overflow: hidden; 
 }
 
 /* Ensure the button element inside is also stripped of all visible styles */
@@ -92,35 +92,46 @@ h1 {
     cursor: pointer;
 }
 
-/* Event Cards - Smooth Transitions for initial selection screen */
+/* Event Cards - Visual content container */
 .event-card-container {
     padding: 10px;
     cursor: pointer;
     transition: transform 0.3s ease-in-out, box-shadow 0.3s;
-    position: relative; /* Important for visual layering */
-    /* Aggressively pull the visual content up to overlap the collapsed button space */
-    margin-top: -70px; /* INCREASED margin for better overlap */
-    z-index: 5; /* Keep the visual card below the transparent button */
+    position: relative;
+    /* Adjusted negative margin to ensure the visual card perfectly overlaps the collapsed button */
+    margin-top: -65px; 
+    z-index: 5; 
 }
+/* Netflix Red Glow and Zoom on Hover */
 .event-card-container:hover {
     transform: scale(1.05); /* Smooth zoom effect */
-    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.4); /* Red glow on hover */
+    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6); /* Strong red glow on hover */
+    z-index: 6; /* Bring hovered card slightly forward */
 }
+
+/* Inner card styling for text alignment */
 .event-card {
     border-radius: 8px;
     background: #222; /* Darker card background */
-    padding: 15px;
+    padding: 15px 5px; /* Reduced vertical padding for better look */
     margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
+    /* FIX: Center the event name text */
+    text-align: center; 
 }
 
-/* --- NEW STYLES FOR NETFLIX DETAIL VIEW --- */
+/* Image styling inside the container */
+.event-card-container img {
+    border-radius: 4px 4px 0 0; /* Match Netflix style */
+}
+
+/* --- Detail View Styles (unchanged) --- */
 .detail-container {
     display: flex;
     gap: 30px;
     padding: 20px;
-    background-color: #1a1a1a; /* Slightly lighter than background */
+    background-color: #1a1a1a; 
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
 }
@@ -129,7 +140,7 @@ h1 {
     position: relative;
     border-radius: 8px;
     overflow: hidden;
-    max-width: 300px; /* Constrain image width */
+    max-width: 300px; 
     height: auto;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
     transition: transform 0.3s;
@@ -141,10 +152,10 @@ h1 {
 .event-description-box {
     padding: 10px;
     color: #ccc;
-    width: 100%; /* Ensure it takes full column width */
+    width: 100%; 
 }
 .event-description-box h2 {
-    color: #E50914; /* Netflix Red for title */
+    color: #E50914; 
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 2.5em;
@@ -155,16 +166,10 @@ h1 {
     margin-bottom: 20px;
     color: white;
 }
-.event-description-box .detail-item {
-    font-size: 1.05em;
-    margin-bottom: 8px;
-}
 .event-description-box .detail-item strong {
-    color: #E50914; /* Highlight keys with Netflix Red */
+    color: #E50914; 
 }
-/* --- END NEW STYLES --- */
 
-/* Event Stats Box (Matching PDF Design) */
 .event-stats {
     background-color: #333;
     padding: 15px;
@@ -181,7 +186,7 @@ h1 {
     margin: 5px 0;
 }
 
-/* Streamlit Button Styling (Red and smooth) */
+/* Standard Streamlit Button Styling (Red and smooth) */
 div.stButton > button {
     background-color: #E50914; 
     color: white;
@@ -195,18 +200,11 @@ div.stButton > button {
     font-weight: bold;
 }
 div.stButton > button:hover {
-    background-color: #f6121d; /* Slightly brighter red on hover */
+    background-color: #f6121d; 
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(229, 9, 20, 0.6);
 }
 
-/* Inputs */
-.stTextInput > div > div > input, .stNumberInput > div > div > input, .stSelectbox > div > div > select {
-    background-color: #333;
-    color: white;
-    border: 1px solid #555;
-    border-radius: 4px;
-}
 .footer {position:fixed;bottom:10px;left:20px;font-size:16px;color:#E50914;}
 </style>
 """, unsafe_allow_html=True)
@@ -242,25 +240,29 @@ def show_events():
     """
     st.session_state.mode = None
     
-    cols = st.columns(len(events))
+    # Use fluid columns for responsiveness
+    cols = st.columns(len(events)) 
     for idx, (ename, edata) in enumerate(events.items()):
         with cols[idx]:
             # 1. Place the transparent button first. 
-            # The CSS handles making its container disappear visually while keeping the button clickable.
+            # The CSS handles making its container visually disappear (height: 1px, opacity: 0)
             if st.button("", key=f"select_{ename}"):
                 st.session_state.event_selected = ename
                 st.rerun() 
             
             # 2. Place the visual content (Image and Title) second.
             # The CSS uses a negative margin to pull this content up into the button's collapsed space.
+            # This is the element that receives the hover effect.
             st.markdown("<div class='event-card-container'>", unsafe_allow_html=True) 
+            
+            # Use st.image for the actual image display
             try:
                 img = Image.open(edata["image"])
                 st.image(img, use_container_width=True)
             except FileNotFoundError:
                  st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
             
-            # The card title provides structure and is part of the clickable area
+            # The card title structure (text is now centered via CSS)
             st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True) 
 
@@ -376,7 +378,8 @@ def buy_tickets(event_name, remaining):
         })
         
         # 2. Mine a new block
-        st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"])
+        # Using create_block as per the original structure, though the helper file uses mine_block
+        st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"]) 
         
         st.success(f"Purchase Confirmed! Your Ticket ID is: **{ticket_id}**. Check your email.")
         
