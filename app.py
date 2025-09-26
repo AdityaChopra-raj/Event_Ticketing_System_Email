@@ -20,7 +20,7 @@ except KeyError:
     EMAIL_ADDRESS = "placeholder@example.com"
     EMAIL_PASSWORD = "app_password_placeholder"
     EMAIL_SECRET_LOADED = False
-    st.warning("⚠️ Email secrets not loaded. Email functionality is disabled.")
+    st.warning("⚠️ Email secrets not loaded. Email functionality is disabled.\nTo enable, provide `[email] address` and `password` in `secrets.toml`.")
 
 
 def send_email(to_email, subject, body):
@@ -28,7 +28,7 @@ def send_email(to_email, subject, body):
     
     # Do not attempt to send if secrets failed to load
     if not EMAIL_SECRET_LOADED:
-        st.info(f"Email skipped: Confirmation for '{to_email}' not sent (Secrets error).")
+        st.info(f"Email skipped: Confirmation for '{to_email}' not sent (Secrets not configured).")
         return
 
     msg = MIMEMultipart()
@@ -44,7 +44,7 @@ def send_email(to_email, subject, body):
         st.toast("Email sent successfully!", icon='📧')
     except Exception as e:
         # Display a more helpful error message for email delivery issues
-        st.error(f"Error sending email: Check firewall/network or if your App Password is correct. Error: {e}")
+        st.error(f"Error sending email: Check network connection or ensure the App Password is correct and enabled. Error: {e}")
 
 
 # ------------------------ APP STATE & INITIALIZATION ------------------------
@@ -84,7 +84,8 @@ h1 {
     font-size: 6em; 
     font-weight: 900;
     letter-spacing: 2px;
-    margin-bottom: 15px; /* ADJUSTED: Reduced gap below title from 40px to 15px */
+    margin-top: 0px;       /* Tighter Spacing Fix */
+    margin-bottom: 5px;    /* Tighter Spacing Fix (reduced from 40px) */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
