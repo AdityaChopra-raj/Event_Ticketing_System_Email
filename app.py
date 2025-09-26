@@ -65,15 +65,17 @@ st.markdown("""
 
 /* Page Header (Netflix Red) */
 h1 {
+    /* Title size doubled and font changed to look like a logo */
     text-align: center;
     color: #E50914; /* Netflix Red */
-    font-size: 3em;
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-size: 6em; /* Doubled from 3em */
+    font-weight: 900;
+    letter-spacing: 2px;
     margin-bottom: 20px;
+    font-family: 'Avenir', 'Arial Black', sans-serif; /* Logo-style font */
 }
 
-/* ----------------------- NEW CLICKABLE CARD STYLES (NO HIDDEN BUTTON HACK) ----------------------- */
+/* ----------------------- CLICKABLE CARD STYLES ----------------------- */
 
 /* Visual content container for image */
 .event-image-container {
@@ -175,11 +177,11 @@ h1 {
     margin: 5px 0;
 }
 
-/* Standard Streamlit Button Styling (Red and smooth) */
+/* Standard Streamlit Button Styling (Red with black thin border) */
 div.stButton > button {
-    background-color: #E50914; 
+    background-color: #E50914; /* Netflix Red */
     color: white;
-    border: none;
+    border: 1px solid black; /* Black thin border */
     padding: 10px 20px;
     font-size: 1em;
     border-radius: 6px;
@@ -189,9 +191,9 @@ div.stButton > button {
     font-weight: bold;
 }
 div.stButton > button:hover {
-    background-color: #f6121d; 
+    background-color: #f6121d; /* Slightly lighter red on hover */
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(229, 9, 20, 0.6);
+    box-shadow: 0 4px 6px rgba(229, 9, 20, 0.6); /* Reduced shadow depth */
 }
 
 .footer {position:fixed;bottom:10px;left:20px;font-size:16px;color:#E50914;}
@@ -280,7 +282,7 @@ def show_event_actions(event_name):
             st.image(img, use_container_width=True)
         except FileNotFoundError:
             # Changed use_column_width=True to use_container_width=True
-            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_html=True)
+            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_details:
