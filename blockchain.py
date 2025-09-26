@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 import time
 import hashlib
 import json
+# Import events_data so get_ticket_status can read capacity
 from events_data import events 
 
 class Blockchain:
@@ -50,17 +51,26 @@ class Blockchain:
 def get_ticket_status(blockchain_instance, event_name):
     """
     Reads the entire blockchain to calculate total purchased, scanned, and remaining capacity.
+    
+    Returns: 
+        total_purchased, total_scanned, remaining_capacity, ticket_details, purchased_tickets_cache
+        
+    Note: purchased_tickets_cache contains the customer's email and name from the PURCHASE transaction.
     """
+    if event_name not in events:
+        return 0, 0, 0, {}, {}
+
     total_capacity = events[event_name]["capacity"]
     total_purchased = 0
     total_scanned = 0
     # ticket_id -> {'qty': x, 'scanned': y}
     ticket_details = {} 
-    # ticket_id -> {details} for quick email/name lookup
+    # ticket_id -> {details from PURCHASE txn: email, name, phone, qty}
     purchased_tickets_cache = {} 
 
     for block in blockchain_instance.chain:
         for txn in block["transactions"]:
+            # Ensure the transaction belongs to the selected event
             if txn.get("event") == event_name:
                 ticket_id = txn.get("ticket_id")
                 if not ticket_id: continue
@@ -69,7 +79,8 @@ def get_ticket_status(blockchain_instance, event_name):
                 if txn.get("type") == "PURCHASE":
                     qty = txn["quantity"]
                     total_purchased += qty
-                    ticket_details[ticket_id] = {"qty": qty, "scanned": 0}
+                    # Initialize or update details from the purchase (which happens first)
+                    ticket_details[ticket_id] = {"qty": qty, "scanned": ticket_details.get(ticket_id, {}).get("scanned", 0)}
                     purchased_tickets_cache[ticket_id] = {
                         "event": event_name, 
                         "name": txn.get("holder", "N/A"), 
