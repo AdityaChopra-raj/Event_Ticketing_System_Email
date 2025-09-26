@@ -15,21 +15,22 @@ blockchain = st.session_state.blockchain
 # Page config
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
 
-# --- CSS for Netflix style ---
+# --- CSS for Netflix-style professional layout ---
 st.markdown("""
 <style>
 div.stButton > button {
     background-color: #E50914;
     color: white;
     font-weight: bold;
-    padding: 8px 12px;
-    border-radius: 5px;
-    width: 250px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    width: 200px;
     margin: 10px auto;
     display: block;
     cursor: pointer;
     font-family: Arial, sans-serif;
-    box-shadow: 2px 2px 6px #aaa;
+    font-size: 16px;
+    box-shadow: 2px 2px 8px #aaa;
     transition: transform 0.3s, opacity 0.5s;
 }
 div.stButton > button:hover {
@@ -38,18 +39,27 @@ div.stButton > button:hover {
 .event-card {
     display: inline-block;
     text-align: center;
-    margin: 10px;
+    margin: 15px;
+    width: 250px;
+    vertical-align: top;
     transition: transform 0.5s, opacity 0.5s;
 }
 .event-card img {
-    width: 250px;
+    width: 100%;
     height: 140px;
     border-radius: 8px;
-    box-shadow: 2px 2px 6px #aaa;
+    box-shadow: 2px 2px 8px #aaa;
     transition: transform 0.3s;
 }
 .event-card img:hover {
     transform: scale(1.05);
+}
+.event-card h4 {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    margin: 8px 0 4px 0;
+    word-wrap: break-word;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -113,20 +123,22 @@ for i, (ename, data) in enumerate(events.items()):
         style = "transform: scale(1); transition: all 0.5s;"
         opacity = 1
 
-    # --- Only show image and event name in the card ---
+    # --- Card with image, heading, and button ---
     col.markdown(f"""
     <div class="event-card" style="{style}; opacity:{opacity};">
         <img src="data:image/png;base64,{img_str}" />
-        <h4 style='margin:5px 0 2px 0;color:white;'>{ename}</h4>
+        <h4>{ename}</h4>
     </div>
     """, unsafe_allow_html=True)
 
+    # Button for selecting event
     if st.session_state.view == "events":
         if col.button(f"Select {ename}", key=f"btn_{i}"):
             st.session_state.selected_event = ename
             st.session_state.view = "event_detail"
             st.experimental_rerun()
 
+    # Button for verifying ticket (below card)
     if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
         if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
             st.session_state.show_verification = True
@@ -145,7 +157,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                {selected_event} Details</h2>
     """, unsafe_allow_html=True)
 
-    # --- Show real-time counts only here ---
+    # --- Show real-time counts only under Event Details ---
     st.markdown(f"""
     <div style='text-align:center; margin-bottom:15px;'>
         <span style='color:#E50914; font-weight:bold; margin-right:20px;'>
@@ -197,7 +209,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                 file_name=f"{selected_event}_ticket_{ticket_id}.txt",
                 mime="text/plain"
             )
-            st.experimental_rerun()  # Refresh counts
+            st.experimental_rerun()
 
 # --- Verification Section ---
 if st.session_state.show_verification:
@@ -238,7 +250,7 @@ if st.session_state.show_verification:
                             events[verify_event]["tickets_scanned"] += num_entering
                             remaining_after = txn["quantity"] - txn["scanned_count"]
                             st.success(f"✅ {num_entering} ticket(s) verified! {remaining_after} remaining under this Ticket ID for {verify_event}")
-                        st.experimental_rerun()  # Refresh counts
+                        st.experimental_rerun()
                         break
                 if found:
                     break
