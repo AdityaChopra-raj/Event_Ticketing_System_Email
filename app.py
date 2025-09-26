@@ -548,7 +548,7 @@ def show_admin_audit():
     Renders a detailed view of the entire blockchain ledger for auditing, 
     including a downloadable CSV of all transactions.
     
-    UPDATED: Includes all customer data and the Block Hash for every transaction.
+    FIXED: Now explicitly joins customer purchase data to VERIFY transactions for a complete view.
     """
     st.subheader("🔒 Blockchain Audit Ledger")
     st.markdown("---")
@@ -558,51 +558,72 @@ def show_admin_audit():
     
     # Back button to return to the main event list
     if st.button("⬅ Back to Events Dashboard"):
-        # Clear the 'view' parameter to return to the main event list
         st.query_params.clear()
         st.rerun()
 
     if not blockchain_data:
         st.info("The blockchain is currently empty (only the genesis block exists).")
         return
+        
+    # NEW: 1. Generate the customer purchase information map once (ticket_id -> customer details)
+    # We use the helper function to calculate the full customer map across ALL blocks/events
+    _, _, _, _, customer_info_map = get_ticket_status(st.session_state.blockchain, None)
 
-    # ------------------ 1. Gather ALL Transactions for Report and Display ------------------
+
+    # ------------------ 2. Gather ALL Transactions for Report and Display ------------------
     for block in blockchain_data:
         block_index = block['index']
         block_hash = block['hash'] # The unique hash of this block (The Ledger Proof)
         block_prev_hash = block['previous_hash']
         
         for txn in block["transactions"]:
+            txn_type = txn.get("type", "N/A")
+            ticket_id = txn.get("ticket_id", "N/A")
             
-            # Determine Quantity/Guests based on transaction type
-            qty_or_guests = txn.get("quantity", txn.get("num_entering", 0))
-
-            # Combine common and type-specific fields, using 'N/A' for missing fields
+            # Initialize common fields
             txn_data = {
                 "Block Index": block_index,
-                "Transaction Type": txn.get("type", "N/A"),
+                "Transaction Type": txn_type,
                 "Time (Readable)": time.ctime(txn.get("timestamp", 0)),
                 "Event Name": txn.get("event", "N/A"),
-                "Ticket ID": txn.get("ticket_id", "N/A"),
-                
-                # Customer Details (Primary source is PURCHASE transaction)
-                "Customer Name": txn.get("holder", "N/A"), 
-                "Customer Email": txn.get("email", "N/A"), 
-                "Phone Number": txn.get("phone_number", "N/A"), 
-                
-                "Quantity/Guests": qty_or_guests, # Tickets purchased or guests checked in
-                "Verifier": txn.get("verifier", "N/A"), # Gate attendant/system (VERIFY only)
-                
-                # Block/Immutability Details
+                "Ticket ID": ticket_id,
+                "Quantity/Guests": 0, 
+                "Customer Name": "N/A", 
+                "Customer Email": "N/A", 
+                "Phone Number": "N/A", 
+                "Verifier": "N/A", 
                 "Block Hash (Ledger Proof)": block_hash, 
                 "Previous Block Hash": block_prev_hash,
-                "Timestamp (Unix)": txn.get("timestamp", 0) # Kept for internal sorting/CSV but hidden from UI table
+                "Timestamp (Unix)": txn.get("timestamp", 0) 
             }
+
+            if txn_type == "PURCHASE":
+                # For a PURCHASE transaction, all customer data is directly on the transaction
+                txn_data["Quantity/Guests"] = txn.get("quantity", 0)
+                txn_data["Customer Name"] = txn.get("holder", "N/A")
+                txn_data["Customer Email"] = txn.get("email", "N/A")
+                txn_data["Phone Number"] = txn.get("phone_number", "N/A")
+
+            elif txn_type == "VERIFY":
+                # For a VERIFY transaction, pull check-in details and ENRICH with customer map
+                txn_data["Quantity/Guests"] = txn.get("num_entering", 0)
+                txn_data["Verifier"] = txn.get("verifier", "N/A")
+                
+                # Enrichment step: Look up customer details using the ticket_id
+                customer_details = customer_info_map.get(ticket_id)
+                if customer_details:
+                    txn_data["Customer Name"] = customer_details.get("name", "N/A")
+                    txn_data["Customer Email"] = customer_details.get("email", "N/A")
+                    txn_data["Phone Number"] = customer_details.get("phone_number", "N/A")
+                # Note: The original quantity is part of the customer_info_map, 
+                # but we prefer to show the purchase quantity only on the PURCHASE row,
+                # and the guests checked in (num_entering) on the VERIFY row.
+
             all_txns_for_display.append(txn_data)
 
     df_all_txns = pd.DataFrame(all_txns_for_display)
     
-    # ------------------ 2. Download Button ------------------
+    # ------------------ 3. Download Button ------------------
     if not df_all_txns.empty:
         # Sort data by timestamp before export for logical flow
         df_all_txns = df_all_txns.sort_values(by="Timestamp (Unix)", ascending=True) 
@@ -613,7 +634,7 @@ def show_admin_audit():
             data=csv,
             file_name='blockchain_event_audit.csv',
             mime='text/csv',
-            help="Download a CSV file containing every transaction recorded on the blockchain, including the block hash proof."
+            help="Download a CSV file containing every transaction recorded on the blockchain, including the block hash proof and customer details."
         )
 
     st.markdown("### All Recorded Transactions (Audit Table)")
@@ -644,7 +665,7 @@ def show_admin_audit():
     st.markdown("---")
     st.markdown("### Block-by-Block Detail")
     
-    # ------------------ 3. Block-by-Block Detailed View ------------------
+    # ------------------ 4. Block-by-Block Detailed View ------------------
     # Iterate through blocks in reverse order (most recent first)
     for i, block in enumerate(reversed(blockchain_data)):
         # Calculate the display index 
