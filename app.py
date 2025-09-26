@@ -14,8 +14,36 @@ blockchain = st.session_state.blockchain
 
 # Page config
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
-st.markdown("<h1 style='text-align:center;color:#004AAD;'>🎫 Event Ticket Portal</h1>", unsafe_allow_html=True)
-st.markdown("<hr>", unsafe_allow_html=True)
+
+# --- Netflix-themed Headings ---
+st.markdown("""
+<h1 style='text-align:center;
+           color:#E50914;
+           font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+           font-size:48px;
+           font-weight:bold;
+           letter-spacing:2px;
+           margin-bottom:10px;
+           text-shadow: 2px 2px 4px #000000;'>
+🎬 Event Ticket Portal
+</h1>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<h2 style='text-align:center;
+           color:white;
+           background-color:#141414;
+           font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+           font-size:32px;
+           font-weight:bold;
+           padding:10px 0;
+           border-radius:8px;
+           letter-spacing:1px;
+           margin-bottom:20px;
+           text-shadow: 1px 1px 3px #000000;'>
+Select Your Event
+</h2>
+""", unsafe_allow_html=True)
 
 # CSS for Netflix-style buttons
 st.markdown("""
@@ -27,7 +55,7 @@ div.stButton > button {
     padding: 8px 12px;
     border-radius: 5px;
     width: 250px;
-    margin: 5px auto 0 auto;
+    margin: 10px auto;
     display: block;
     cursor: pointer;
     font-family: Arial, sans-serif;
@@ -56,7 +84,7 @@ div.stButton > button:hover {
 """, unsafe_allow_html=True)
 
 # --- Display events as Netflix-style cards ---
-st.markdown("<h2 style='color:#004AAD;text-align:center;'>Select Your Event</h2>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 cols = st.columns(4)
 
 if "selected_event" not in st.session_state:
@@ -78,20 +106,25 @@ for i, (ename, data) in enumerate(events.items()):
     col.markdown(f"""
     <div class="event-card">
         <img src="data:image/png;base64,{img_str}" />
-        <h4 style='margin:5px 0 2px 0;'>{ename}</h4>
-        <p style='font-size:12px;margin:2px 0;'>Tickets Scanned: <b>{data['tickets_scanned']}</b></p>
-        <p style='font-size:12px;margin:2px 0;'>Remaining Capacity: <b>{data['capacity']}</b></p>
+        <h4 style='margin:5px 0 2px 0;color:white;'>{ename}</h4>
+        <p style='font-size:12px;margin:2px 0;color:#E50914;'>Tickets Scanned: <b>{data['tickets_scanned']}</b></p>
+        <p style='font-size:12px;margin:2px 0;color:#E50914;'>Remaining Capacity: <b>{data['capacity']}</b></p>
     </div>
     """, unsafe_allow_html=True)
 
     if col.button(f"Select {ename}", key=f"btn_{i}"):
         st.session_state.selected_event = ename
 
+st.markdown("</div>", unsafe_allow_html=True)
 selected_event = st.session_state.selected_event
 
 # --- Buy Ticket Section ---
 if selected_event:
-    st.markdown(f"<h2 style='color:#004AAD;text-align:center;'>Selected Event: {selected_event}</h2>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <h2 style='text-align:center;color:#E50914;font-family:"Helvetica Neue", Helvetica, Arial, sans-serif;
+               font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>Selected Event: {selected_event}</h2>
+    """, unsafe_allow_html=True)
+
     st.markdown("### Enter Your Details to Buy Ticket")
     name = st.text_input("Name")
     phone = st.text_input("Phone Number")
