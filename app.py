@@ -75,6 +75,7 @@ h1 {
     position: relative;
     z-index: 10; /* Ensure button is on top for clicking */
     opacity: 0.01; /* Minimal opacity to be safe */
+    overflow: hidden; /* Ensure no text label leaks */
 }
 
 /* Ensure the button element inside is also stripped of all visible styles */
@@ -98,7 +99,7 @@ h1 {
     transition: transform 0.3s ease-in-out, box-shadow 0.3s;
     position: relative; /* Important for visual layering */
     /* Aggressively pull the visual content up to overlap the collapsed button space */
-    margin-top: -60px; 
+    margin-top: -70px; /* INCREASED margin for better overlap */
     z-index: 5; /* Keep the visual card below the transparent button */
 }
 .event-card-container:hover {
@@ -259,6 +260,7 @@ def show_events():
             except FileNotFoundError:
                  st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
             
+            # The card title provides structure and is part of the clickable area
             st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True) 
 
