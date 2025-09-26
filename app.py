@@ -126,12 +126,13 @@ if selected_event:
     phone = st.text_input("Phone Number")
     email = st.text_input("Email")
     uid = st.text_input("Unique ID (UID)")
+    num_tickets = st.number_input("Number of Tickets (Max 10)", min_value=1, max_value=10, step=1)
 
     if st.button("Confirm Purchase", key="confirm_purchase"):
         if not name or not phone or not email or not uid:
             st.warning("Please fill all fields")
-        elif events[selected_event]["capacity"] <= 0:
-            st.error("Sorry, event is full!")
+        elif events[selected_event]["capacity"] < num_tickets:
+            st.error(f"Sorry, only {events[selected_event]['capacity']} tickets left!")
         else:
             ticket_id = str(uuid.uuid4())[:8]
 
@@ -144,15 +145,16 @@ if selected_event:
                 customer_email=email,
                 phone=phone,
                 uid=uid,
-                scanned=False
+                quantity=num_tickets,
+                scanned_count=0
             )
             blockchain.mine_block()
-            events[selected_event]["capacity"] -= 1
+            events[selected_event]["capacity"] -= num_tickets
 
-            st.success(f"✅ Ticket Purchased Successfully! Your Ticket ID: **{ticket_id}**")
+            st.success(f"✅ {num_tickets} Ticket(s) Purchased Successfully! Your Ticket ID: **{ticket_id}**")
 
             # Download ticket
-            ticket_text = f"Event: {selected_event}\nName: {name}\nPhone: {phone}\nEmail: {email}\nUID: {uid}\nTicket ID: {ticket_id}"
+            ticket_text = f"Event: {selected_event}\nName: {name}\nPhone: {phone}\nEmail: {email}\nUID: {uid}\nTicket ID: {ticket_id}\nQuantity: {num_tickets}"
             st.download_button(
                 label="Download Ticket ID",
                 data=ticket_text,
@@ -175,6 +177,9 @@ if st.session_state.show_verification:
     verify_email = st.text_input("Enter Email for Verification", key="verify_email")
     verify_ticket_id = st.text_input("Enter Ticket ID", key="verify_ticket_id")
 
+    # Number of guests entering at this time
+    num_entering = st.number_input("Number of Guests Entering", min_value=1, max_value=10, step=1)
+
     if st.button("Verify Ticket", key="verify_ticket"):
         if not verify_email or not verify_ticket_id:
             st.warning("Please fill all fields")
@@ -187,12 +192,17 @@ if st.session_state.show_verification:
                         txn["customer_email"] == verify_email):
 
                         found = True
-                        if txn["scanned"]:
-                            st.error("❌ Ticket has already been used")
+                        remaining = txn["quantity"] - txn["scanned_count"]
+
+                        if remaining == 0:
+                            st.error("❌ All tickets under this Ticket ID have already been used")
+                        elif num_entering > remaining:
+                            st.warning(f"⚠ You can verify a maximum of {remaining} guest(s) at this time")
                         else:
-                            txn["scanned"] = True
-                            events[verify_event]["tickets_scanned"] += 1
-                            st.success(f"✅ Ticket Verified! Welcome to {verify_event}")
+                            txn["scanned_count"] += num_entering
+                            events[verify_event]["tickets_scanned"] += num_entering
+                            remaining_after = txn["quantity"] - txn["scanned_count"]
+                            st.success(f"✅ {num_entering} ticket(s) verified! {remaining_after} remaining under this Ticket ID for {verify_event}")
                         break
                 if found:
                     break
