@@ -96,18 +96,15 @@ st.markdown("""
     font-family: 'Inter', sans-serif;
 }
 
-/* *** SPACING FIX: AGGRESSIVE OVERRIDE ***
-    This uses !important and a negative margin to pull the content up 
-    over Streamlit's default container padding.
-*/
+/* *** SPACING FIX: AGGRESSIVE OVERRIDE *** */
 h1 {
     text-align: center;
     color: #E50914; /* Netflix Red */
-    font-size: 3em; /* ADJUSTED: Reduced from 6em to 3em (half size) */
+    font-size: 3em; 
     font-weight: 900;
     letter-spacing: 2px;
     margin-top: 0 !important;       
-    margin-bottom: -5px !important; /* Adjusted negative margin for smaller font */
+    margin-bottom: -5px !important; 
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
@@ -121,7 +118,7 @@ h1 {
     /* Softly enforce the 2:3 ratio */
     aspect-ratio: 2 / 3; 
     overflow: hidden; 
-    /* NEW: Set a maximum width for consistency on large screens */
+    /* Set a maximum width for consistency on large screens */
     max-width: 250px; 
     margin-left: auto; /* Center the image container within the column */
     margin-right: auto;
@@ -244,6 +241,34 @@ div.stButton > button:hover {
 }
 
 .footer {position:fixed;bottom:10px;left:20px;font-size:16px;color:#E50914;}
+
+/* NEW: Floating Button Styles */
+.audit-button-container {
+    position: fixed;
+    bottom: 20px; /* Adjust vertical position */
+    right: 20px; /* Adjust horizontal position */
+    z-index: 1000; /* Ensure it floats above other content */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* Shadow for better visibility */
+    border-radius: 8px;
+    overflow: hidden; /* Contains the button shadow */
+}
+
+/* Target the Streamlit button element within the container */
+.audit-button-container .stButton > button {
+    background-color: #E50914 !important; /* Netflix Red */
+    color: white !important;
+    padding: 12px 20px !important;
+    font-size: 1.1em !important;
+    font-weight: bold !important;
+    border: none !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s, transform 0.2s;
+}
+.audit-button-container .stButton > button:hover {
+    background-color: #f6121d !important;
+    transform: translateY(-1px) !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -578,11 +603,29 @@ elif event_selected is None:
 else:
     show_event_actions(event_selected)
 
-# ------------------------ DEVELOPER FOOTER ------------------------
+# ------------------------ DEVELOPER FOOTER & FLOATING BUTTON ------------------------
+
+# 1. Developer Footer (bottom left)
 blocks_count, purchase_count, check_in_count = get_blockchain_stats()
 footer_text = f"Blocks Created:{blocks_count} | Purchase Txns:{purchase_count} | Check In Txns:{check_in_count}"
 
-# NEW: Added a clickable link to switch to the admin view
-audit_link = f"<a href='?view=admin' style='color:#E50914; text-decoration:none; font-weight:bold;'>View Audit Ledger</a>"
+# Link in the footer to the audit view
+audit_link_footer = f"<a href='?view=admin' style='color:#E50914; text-decoration:none; font-weight:bold;'>View Audit Ledger</a>"
+st.markdown(f"<div class='footer'>{footer_text} | {audit_link_footer}</div>", unsafe_allow_html=True)
 
-st.markdown(f"<div class='footer'>{footer_text} | {audit_link}</div>", unsafe_allow_html=True)
+
+# 2. Floating Audit Button (bottom right)
+if not admin_view: # Only show the button if we are NOT already on the admin page
+    # Embed the Streamlit button in a custom HTML container for fixed positioning
+    st.markdown(
+        f"""
+        <div class='audit-button-container'>
+            <a href='?view=admin'>
+                <button>
+                    Blockchain Audit
+                </button>
+            </a>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
