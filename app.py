@@ -121,6 +121,10 @@ h1 {
     /* Softly enforce the 2:3 ratio */
     aspect-ratio: 2 / 3; 
     overflow: hidden; 
+    /* NEW: Set a maximum width for consistency on large screens */
+    max-width: 250px; 
+    margin-left: auto; /* Center the image container within the column */
+    margin-right: auto;
 }
 
 /* Image styling inside the container */
