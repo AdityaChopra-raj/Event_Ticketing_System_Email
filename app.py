@@ -21,14 +21,12 @@ except KeyError:
     EMAIL_PASSWORD = "app_password_placeholder"
     EMAIL_SECRET_LOADED = False
     
-    # -----------------------------------------------------------
-    # ADDED: Detailed instructions for the user to fix the secrets file
-    # -----------------------------------------------------------
+    # Updated: Specific warning about the required TOML structure/keys
     st.error("""
-        ⚠️ **EMAIL FUNCTIONALITY DISABLED** (Required secrets are missing)
+        ⚠️ **EMAIL FUNCTIONALITY DISABLED** (Required secrets are missing or keys are incorrect)
         
-        To enable emailing, you must create a file named `secrets.toml` in your Streamlit app directory 
-        and add the following content (using a Gmail **App Password** for security):
+        The app failed to load the `[email]` secrets. Please verify that your 
+        `.streamlit/secrets.toml` file has the following *exact* structure:
         
         ```toml
         [email]
@@ -36,7 +34,7 @@ except KeyError:
         password = "your_generated_app_password" 
         ```
         
-        Once the file is saved correctly, restart your app.
+        Ensure you are using a Gmail **App Password** for security.
     """, icon="🚫")
 
 
