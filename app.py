@@ -64,7 +64,7 @@ h1 {
     letter-spacing: 1px;
 }
 
-/* Event Cards - Smooth Transitions */
+/* Event Cards - Smooth Transitions for initial selection screen */
 .event-card-container {
     padding: 10px;
     cursor: pointer;
@@ -82,6 +82,55 @@ h1 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
 }
+
+/* --- NEW STYLES FOR NETFLIX DETAIL VIEW --- */
+.detail-container {
+    display: flex;
+    gap: 30px;
+    padding: 20px;
+    background-color: #1a1a1a; /* Slightly lighter than background */
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+}
+
+.event-image-card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 300px; /* Constrain image width */
+    height: auto;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+    transition: transform 0.3s;
+}
+.event-image-card:hover {
+    transform: scale(1.02);
+}
+
+.event-description-box {
+    padding: 10px;
+    color: #ccc;
+    width: 100%; /* Ensure it takes full column width */
+}
+.event-description-box h2 {
+    color: #E50914; /* Netflix Red for title */
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 2.5em;
+}
+.event-description-box p {
+    font-size: 1.1em;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: white;
+}
+.event-description-box .detail-item {
+    font-size: 1.05em;
+    margin-bottom: 8px;
+}
+.event-description-box .detail-item strong {
+    color: #E50914; /* Highlight keys with Netflix Red */
+}
+/* --- END NEW STYLES --- */
 
 /* Event Stats Box (Matching PDF Design) */
 .event-stats {
@@ -166,7 +215,8 @@ def show_events():
                 img = Image.open(edata["image"])
                 st.image(img, use_column_width=True)
             except FileNotFoundError:
-                 st.image("https://placehold.co/300x200/E50914/FFFFFF?text=Image+Missing", use_column_width=True)
+                 # Placeholder with a portrait aspect ratio
+                 st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_column_width=True)
             
             st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
             if st.button(f"Select {ename}", key=f"select_{ename}"):
@@ -175,39 +225,76 @@ def show_events():
             st.markdown("</div>", unsafe_allow_html=True) 
 
 def show_event_actions(event_name):
-    """Renders event actions (Buy/Check-In) and statistics (Page 2 of PDF)."""
-    st.markdown(f"<h2 style='text-align:center;color:white;'>{event_name}</h2>", unsafe_allow_html=True)
+    """
+    Renders event details, actions (Buy/Check-In), and statistics in a two-column (Netflix-style) layout.
+    """
     
-    # Display statistics
+    # Get event data and status
+    edata = events[event_name]
     remaining, scanned, _ = capacity_info(event_name)
-    st.markdown(f"""
-    <div class='event-stats'>
-        <div>Available Tickets: {remaining}</div>
-        <div>No. of guests in venue: {scanned}</div>
-    </div>
-    """, unsafe_allow_html=True)
 
-    if st.session_state.mode is None:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            if st.button("⬅ Back to Events"):
-                st.session_state.event_selected = None
-                st.rerun() 
-        with c2:
-            if st.button("Buy Ticket", key="action_buy"):
-                st.session_state.mode = "buy"
-        with c3:
-            if st.button("Check-In", key="action_verify"): 
-                st.session_state.mode = "verify"
-    else:
-        if st.button("⬅ Back to Actions"):
-            st.session_state.mode = None
-            st.rerun() 
+    # Use columns for Netflix layout: Image on Left, Details/Actions on Right
+    st.markdown("<div class='detail-container'>", unsafe_allow_html=True)
+    
+    # Set column widths: 1 for image, 2.5 for details
+    col_image, col_details = st.columns([1, 2.5]) 
+
+    with col_image:
+        # Image Card (Left Side)
+        st.markdown("<div class='event-image-card'>", unsafe_allow_html=True)
+        try:
+            img = Image.open(edata["image"])
+            st.image(img, use_column_width=True)
+        except FileNotFoundError:
+            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_column_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_details:
+        # Details and Actions (Right Side - Description/Stats/Buttons)
+        st.markdown(f"<div class='event-description-box'>", unsafe_allow_html=True)
+        st.markdown(f"<h2>{event_name}</h2>", unsafe_allow_html=True)
         
-        if st.session_state.mode == "buy":
-            buy_tickets(event_name, remaining)
-        elif st.session_state.mode == "verify":
-            verify_tickets(event_name)
+        # Display Time and Location
+        st.markdown(f"<div class='detail-item'><strong>Time:</strong> {edata.get('time', 'N/A')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='detail-item'><strong>Location:</strong> {edata.get('location', 'N/A')}</div>", unsafe_allow_html=True)
+        
+        # Display Description
+        st.markdown(f"<p>{edata['description']}</p>", unsafe_allow_html=True)
+        
+        # Display statistics
+        st.markdown(f"""
+        <div class='event-stats'>
+            <div>Available Tickets: {remaining}</div>
+            <div>No. of guests in venue: {scanned}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.session_state.mode is None:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                if st.button("⬅ Back to Events"):
+                    st.session_state.event_selected = None
+                    st.rerun() 
+            with c2:
+                if st.button("Buy Ticket", key="action_buy"):
+                    st.session_state.mode = "buy"
+            with c3:
+                if st.button("Check-In", key="action_verify"): 
+                    st.session_state.mode = "verify"
+        else:
+            if st.button("⬅ Back to Actions"):
+                st.session_state.mode = None
+                st.rerun() 
+            
+            # Conditionally render Buy or Verify forms
+            if st.session_state.mode == "buy":
+                buy_tickets(event_name, remaining)
+            elif st.session_state.mode == "verify":
+                verify_tickets(event_name)
+        
+        st.markdown("</div>", unsafe_allow_html=True) # Close event-description-box
+    
+    st.markdown("</div>", unsafe_allow_html=True) # Close detail-container
 
 
 def buy_tickets(event_name, remaining):
@@ -264,7 +351,7 @@ def buy_tickets(event_name, remaining):
 
 def verify_tickets(event_name):
     """Handles the in-app ticket verification (Check-In) logic."""
-    st.subheader("Gate Attendant: Check-In")
+    st.subheader("Gate Attendant: Process Check-In")
 
     # Fetch the latest status for verification checks
     _, _, _, ticket_details, purchased_tickets_cache = get_ticket_status(st.session_state.blockchain, event_name)
