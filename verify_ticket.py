@@ -7,14 +7,42 @@ if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
 blockchain = st.session_state.blockchain
 
+# Page config
 st.set_page_config(page_title="Ticket Verification", layout="centered", page_icon="✅")
 st.markdown("<h1 style='text-align:center;color:#004AAD;'>✅ Ticket Verification Portal</h1>", unsafe_allow_html=True)
 st.markdown("<hr>", unsafe_allow_html=True)
 
+# CSS for Netflix-style button
+st.markdown("""
+<style>
+div.stButton > button {
+    background-color: #E50914;
+    color: white;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 5px;
+    width: 250px;
+    margin: 10px auto;
+    display: block;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    box-shadow: 2px 2px 6px #aaa;
+    transition: transform 0.2s;
+}
+div.stButton > button:hover {
+    transform: scale(1.05);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Centered input fields
+st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 event_name = st.selectbox("Select Event", list(events.keys()))
 email = st.text_input("Enter Email")
 ticket_id = st.text_input("Enter Ticket ID")
+st.markdown("</div>", unsafe_allow_html=True)
 
+# Verify button
 if st.button("Verify Ticket"):
     if not email or not ticket_id:
         st.warning("Please fill all fields")
