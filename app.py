@@ -15,9 +15,10 @@ blockchain = st.session_state.blockchain
 # Page config
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
 
-# --- CSS for Netflix-style layout and animation ---
+# --- CSS for Netflix-style layout and centered buttons ---
 st.markdown("""
 <style>
+/* Centered button with text aligned properly */
 div.stButton > button {
     background-color: #E50914;
     color: white;
@@ -25,17 +26,21 @@ div.stButton > button {
     padding: 10px 16px;
     border-radius: 6px;
     width: 200px;
-    margin: 10px auto;
+    margin: 10px auto;       /* centers button under the card */
     display: block;
     cursor: pointer;
     font-family: Arial, sans-serif;
     font-size: 16px;
     box-shadow: 2px 2px 8px #aaa;
     transition: transform 0.3s, opacity 0.5s;
+    text-align: center;      /* centers text inside button */
+    line-height: 1.5;        /* vertical centering */
 }
 div.stButton > button:hover {
     transform: scale(1.05);
 }
+
+/* Event card styling */
 .event-card {
     display: inline-block;
     text-align: center;
@@ -112,7 +117,7 @@ for i, (ename, data) in enumerate(events.items()):
     img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode()
 
-    # --- Animation: expand selected, fade others ---
+    # Animation: expand selected, fade others
     if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
         style = "transform: scale(1.6); z-index:10; transition: all 0.5s; margin:0 auto;"
         opacity = 1
@@ -123,7 +128,7 @@ for i, (ename, data) in enumerate(events.items()):
         style = "transform: scale(1); transition: all 0.5s;"
         opacity = 1
 
-    # --- Event Card ---
+    # Event Card
     col.markdown(f"""
     <div class="event-card" style="{style}; opacity:{opacity};">
         <img src="data:image/png;base64,{img_str}" />
@@ -131,7 +136,7 @@ for i, (ename, data) in enumerate(events.items()):
     </div>
     """, unsafe_allow_html=True)
 
-    # --- Button below card ---
+    # Button below card
     if st.session_state.view == "events":
         if col.button(f"Select {ename}", key=f"btn_{i}"):
             st.session_state.selected_event = ename
@@ -155,7 +160,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                {selected_event} Details</h2>
     """, unsafe_allow_html=True)
 
-    # --- Real-time Counts ---
+    # Real-time Counts
     st.markdown(f"""
     <div style='text-align:center; margin-bottom:15px;'>
         <span style='color:#E50914; font-weight:bold; margin-right:20px;'>
@@ -167,7 +172,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
     </div>
     """, unsafe_allow_html=True)
 
-    # --- Buy Ticket ---
+    # Buy Ticket
     st.markdown("### Enter Your Details to Buy Ticket")
     name = st.text_input("Name", key="name")
     phone = st.text_input("Phone Number", key="phone")
