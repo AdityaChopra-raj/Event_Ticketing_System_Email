@@ -15,19 +15,6 @@ blockchain = st.session_state.blockchain
 # Page config
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
 
-# --- Top navigation button to Ticket Verification ---
-st.markdown("""
-<div style='text-align:center; margin-bottom:20px;'>
-    <a href="/verify_ticket" target="_blank">
-        <button style='background-color:#E50914;color:white;font-weight:bold;padding:10px 20px;
-                       border-radius:5px;font-size:16px;cursor:pointer;box-shadow:2px 2px 6px #aaa;
-                       transition: transform 0.2s;'>
-            Go to Ticket Verification
-        </button>
-    </a>
-</div>
-""", unsafe_allow_html=True)
-
 # --- CSS for hover effects and Netflix style ---
 st.markdown("""
 <style>
@@ -46,9 +33,6 @@ div.stButton > button {
     transition: transform 0.2s;
 }
 div.stButton > button:hover {
-    transform: scale(1.05);
-}
-a button:hover {
     transform: scale(1.05);
 }
 .event-card {
@@ -71,38 +55,27 @@ a button:hover {
 
 # --- Netflix-themed Headings ---
 st.markdown("""
-<h1 style='text-align:center;
-           color:#E50914;
-           font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-           font-size:48px;
-           font-weight:bold;
-           letter-spacing:2px;
-           margin-bottom:10px;
-           text-shadow: 2px 2px 4px #000000;'>
-🎬 Event Ticket Portal
-</h1>
+<h1 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
+           font-size:48px;font-weight:bold;letter-spacing:2px;margin-bottom:10px;
+           text-shadow: 2px 2px 4px #000;'>🎬 Event Ticket Portal</h1>
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<h2 style='text-align:center;
-           color:white;
-           background-color:#141414;
-           font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-           font-size:32px;
-           font-weight:bold;
-           padding:10px 0;
-           border-radius:8px;
-           letter-spacing:1px;
-           margin-bottom:20px;
-           text-shadow: 1px 1px 3px #000000;'>
-Select Your Event
-</h2>
+<h2 style='text-align:center;color:white;background-color:#141414;
+           font-family:Helvetica, Arial, sans-serif;font-size:32px;font-weight:bold;
+           padding:10px 0;border-radius:8px;letter-spacing:1px;margin-bottom:20px;
+           text-shadow:1px 1px 3px #000;'>Select Your Event</h2>
 """, unsafe_allow_html=True)
+
+# --- Inline Verification Section Button ---
+if st.button("Verify Ticket Now"):
+    st.session_state.show_verification = True
+if "show_verification" not in st.session_state:
+    st.session_state.show_verification = False
 
 # --- Display events as Netflix-style cards ---
 st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 cols = st.columns(4)
-
 if "selected_event" not in st.session_state:
     st.session_state.selected_event = None
 
@@ -137,8 +110,9 @@ selected_event = st.session_state.selected_event
 # --- Buy Ticket Section ---
 if selected_event:
     st.markdown(f"""
-    <h2 style='text-align:center;color:#E50914;font-family:"Helvetica Neue", Helvetica, Arial, sans-serif;
-               font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>Selected Event: {selected_event}</h2>
+    <h2 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
+               font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>
+               Selected Event: {selected_event}</h2>
     """, unsafe_allow_html=True)
 
     st.markdown("### Enter Your Details to Buy Ticket")
@@ -180,3 +154,39 @@ if selected_event:
                 mime="text/plain"
             )
 
+# --- Verification Section ---
+if st.session_state.show_verification:
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.markdown("""
+    <h2 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
+               font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>
+               Verify Your Ticket</h2>
+    """, unsafe_allow_html=True)
+
+    verify_event = st.selectbox("Select Event for Verification", list(events.keys()))
+    verify_email = st.text_input("Enter Email for Verification", key="verify_email")
+    verify_ticket_id = st.text_input("Enter Ticket ID", key="verify_ticket_id")
+
+    if st.button("Verify Ticket", key="verify_ticket"):
+        if not verify_email or not verify_ticket_id:
+            st.warning("Please fill all fields")
+        else:
+            found = False
+            for block in blockchain.chain:
+                for txn in block["transactions"]:
+                    if (txn["ticket_id"] == verify_ticket_id and
+                        txn["event_name"] == verify_event and
+                        txn["customer_email"] == verify_email):
+
+                        found = True
+                        if txn["scanned"]:
+                            st.error("❌ Ticket has already been used")
+                        else:
+                            txn["scanned"] = True
+                            events[verify_event]["tickets_scanned"] += 1
+                            st.success(f"✅ Ticket Verified! Welcome to {verify_event}")
+                        break
+                if found:
+                    break
+            if not found:
+                st.error("❌ Ticket ID and Email do not match any record")
