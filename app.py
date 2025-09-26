@@ -38,6 +38,10 @@ if "event_selected" not in st.session_state:
     st.session_state.event_selected = None
 if "mode" not in st.session_state:
     st.session_state.mode = None
+# This cache stores the current ticket status calculated from the blockchain, including customer data.
+if "purchased_tickets_cache" not in st.session_state:
+    st.session_state.purchased_tickets_cache = {}
+
 
 st.set_page_config(page_title="Event Ticket Portal", layout="wide")
 
@@ -131,6 +135,7 @@ st.markdown("<h1>Event Ticket Portal</h1>", unsafe_allow_html=True)
 # ------------------------ HELPER FUNCTIONS ------------------------
 def capacity_info(event_name):
     """Fetches real-time status by reading the blockchain."""
+    # The cache is recalculated here to ensure the most up-to-date data for the check-in app
     _, scanned, remaining, _, purchased_tickets_cache = get_ticket_status(st.session_state.blockchain, event_name)
     st.session_state.purchased_tickets_cache = purchased_tickets_cache 
     return remaining, scanned
@@ -167,7 +172,7 @@ def show_events():
             st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
             if st.button(f"Select {ename}", key=f"select_{ename}"):
                 st.session_state.event_selected = ename
-                st.rerun() # FIXED: Changed from st.experimental_rerun()
+                st.rerun() 
             st.markdown("</div>", unsafe_allow_html=True) 
 
 def show_event_actions(event_name):
@@ -188,7 +193,7 @@ def show_event_actions(event_name):
         with c1:
             if st.button("⬅ Back to Events"):
                 st.session_state.event_selected = None
-                st.rerun() # FIXED: Changed from st.experimental_rerun()
+                st.rerun() 
         with c2:
             if st.button("Buy Ticket", key="action_buy"):
                 st.session_state.mode = "buy"
@@ -198,14 +203,15 @@ def show_event_actions(event_name):
     else:
         if st.button("⬅ Back to Actions"):
             st.session_state.mode = None
+            st.rerun() 
         
         if st.session_state.mode == "buy":
             buy_tickets(event_name, remaining)
         elif st.session_state.mode == "verify":
-            # Direct the user to the dedicated verification app
-            st.error("Please use the separate **Ticket Verification App** to check-in guests.")
-            st.subheader("Check-In (Sales Portal View)")
-            st.markdown("Gate attendants must use the dedicated 'Ticket Verification' application for security and logging purposes.")
+            # Redirect message for Check-In (as per design structure)
+            st.warning("Gate attendants must use the dedicated **Ticket Verification App** (`verify_ticket.py`) to check-in guests.")
+            st.subheader("Check-In Status View (Sales Portal)")
+            st.info("Verification is handled in a separate, secure application.")
 
 
 def buy_tickets(event_name, remaining):
@@ -216,7 +222,7 @@ def buy_tickets(event_name, remaining):
     with st.form(key='purchase_form'):
         name = st.text_input("Name", key="buy_name")
         email = st.text_input("Email", key="buy_email")
-        phone_number = st.text_input("Phone Number", key="buy_phone") # INCLUDES PHONE NUMBER
+        phone_number = st.text_input("Phone Number", key="buy_phone") 
         qty = st.number_input("No. of Tickets (max 10)", min_value=1, max_value=10, value=1, key="buy_qty")
         
         submitted = st.form_submit_button("Confirm Purchase")
@@ -250,9 +256,14 @@ def buy_tickets(event_name, remaining):
         st.success(f"Purchase Confirmed! Your Ticket ID is: **{ticket_id}**. Check your email.")
         
         # 3. Send email confirmation
-        body = (f"Hello {name},\n\nYou purchased {qty} ticket(s) for {event_name}.\n"
-                f"Ticket ID: {ticket_id}\n\nPresent this ID at the venue for verification.")
+        body = (f"Hello {name},\n\nYour purchase for {event_name} has been confirmed.\n"
+                f"Total Tickets Purchased: {qty}\n"
+                f"Your Ticket ID: {ticket_id}\n\n"
+                f"Present this ID at the venue for check-in via the Ticket Verification App.\n\n"
+                f"--- Confirmation Sent from Event Portal ---")
+                
         send_email(email, f"{event_name} Ticket Confirmation", body)
+        st.rerun() # Refresh to show new capacity
 
 # ------------------------ PAGE FLOW ------------------------
 if st.session_state.event_selected is None:
