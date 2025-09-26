@@ -15,7 +15,7 @@ blockchain = st.session_state.blockchain
 # Page config
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
 
-# --- CSS for hover effects and Netflix style ---
+# --- CSS for Netflix style ---
 st.markdown("""
 <style>
 div.stButton > button {
@@ -32,7 +32,7 @@ div.stButton > button {
     box-shadow: 2px 2px 6px #aaa;
     transition: transform 0.2s;
 }
-div.stButton > button:hover {
+div.stButton > button:hover, a button:hover {
     transform: scale(1.05);
 }
 .event-card {
@@ -67,18 +67,17 @@ st.markdown("""
            text-shadow:1px 1px 3px #000;'>Select Your Event</h2>
 """, unsafe_allow_html=True)
 
-# --- Inline Verification Section Button ---
-if st.button("Verify Ticket Now"):
-    st.session_state.show_verification = True
-if "show_verification" not in st.session_state:
-    st.session_state.show_verification = False
-
-# --- Display events as Netflix-style cards ---
-st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
-cols = st.columns(4)
+# --- Initialize session state ---
 if "selected_event" not in st.session_state:
     st.session_state.selected_event = None
+if "show_verification" not in st.session_state:
+    st.session_state.show_verification = False
+if "verify_event" not in st.session_state:
+    st.session_state.verify_event = None
 
+# --- Display event cards with purchase & verify buttons ---
+st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
+cols = st.columns(4)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 for i, (ename, data) in enumerate(events.items()):
@@ -101,8 +100,15 @@ for i, (ename, data) in enumerate(events.items()):
     </div>
     """, unsafe_allow_html=True)
 
+    # Button to select event for purchase
     if col.button(f"Select {ename}", key=f"btn_{i}"):
         st.session_state.selected_event = ename
+
+    # Verify Ticket button under specific events
+    if ename in ["Diwali Dance", "Freshers"]:
+        if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
+            st.session_state.show_verification = True
+            st.session_state.verify_event = ename
 
 st.markdown("</div>", unsafe_allow_html=True)
 selected_event = st.session_state.selected_event
@@ -145,7 +151,7 @@ if selected_event:
 
             st.success(f"✅ Ticket Purchased Successfully! Your Ticket ID: **{ticket_id}**")
 
-            # Download ticket text file
+            # Download ticket
             ticket_text = f"Event: {selected_event}\nName: {name}\nPhone: {phone}\nEmail: {email}\nUID: {uid}\nTicket ID: {ticket_id}"
             st.download_button(
                 label="Download Ticket ID",
@@ -157,13 +163,15 @@ if selected_event:
 # --- Verification Section ---
 if st.session_state.show_verification:
     st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("""
+    st.markdown(f"""
     <h2 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
                font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>
                Verify Your Ticket</h2>
     """, unsafe_allow_html=True)
 
-    verify_event = st.selectbox("Select Event for Verification", list(events.keys()))
+    verify_event = st.selectbox("Select Event for Verification",
+                                list(events.keys()),
+                                index=list(events.keys()).index(st.session_state.get("verify_event", list(events.keys())[0])))
     verify_email = st.text_input("Enter Email for Verification", key="verify_email")
     verify_ticket_id = st.text_input("Enter Ticket ID", key="verify_ticket_id")
 
