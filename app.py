@@ -213,10 +213,11 @@ def show_events():
             st.markdown("<div class='event-card-container'>", unsafe_allow_html=True) 
             try:
                 img = Image.open(edata["image"])
-                st.image(img, use_column_width=True)
+                # Changed use_column_width=True to use_container_width=True
+                st.image(img, use_container_width=True)
             except FileNotFoundError:
-                 # Placeholder with a portrait aspect ratio
-                 st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_column_width=True)
+                 # Changed use_column_width=True to use_container_width=True
+                 st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
             
             st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
             if st.button(f"Select {ename}", key=f"select_{ename}"):
@@ -244,9 +245,11 @@ def show_event_actions(event_name):
         st.markdown("<div class='event-image-card'>", unsafe_allow_html=True)
         try:
             img = Image.open(edata["image"])
-            st.image(img, use_column_width=True)
+            # Changed use_column_width=True to use_container_width=True
+            st.image(img, use_container_width=True)
         except FileNotFoundError:
-            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_column_width=True)
+            # Changed use_column_width=True to use_container_width=True
+            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_details:
