@@ -30,11 +30,12 @@ def send_email(to_email, subject, body):
         st.error(f"Error sending email. Check secrets.toml and App Password. Error: {e}")
 
 
-# ------------------------ APP STATE ------------------------
+# ------------------------ APP STATE & INITIALIZATION ------------------------
 if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
-if "event_selected" not in st.session_state:
-    st.session_state.event_selected = None
+# The selected event will now be driven by st.query_params
+# if "event_selected" not in st.session_state:
+#     st.session_state.event_selected = None
 if "mode" not in st.session_state:
     st.session_state.mode = None
 # This cache stores the current ticket status calculated from the blockchain, including customer data.
@@ -43,6 +44,14 @@ if "purchased_tickets_cache" not in st.session_state:
 
 
 st.set_page_config(page_title="Event Ticket Portal", layout="wide")
+
+# Get selected event from query params (URL)
+event_selected = st.query_params.get("event")
+if event_selected and event_selected not in events:
+    # Handle bad URL param by resetting
+    st.query_params.clear()
+    event_selected = None
+
 
 # ------------------------ NETFLIX-THEME STYLING ------------------------
 st.markdown("""
@@ -64,69 +73,45 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* ----------------------- CRITICAL FIX: HIDE BUTTON & MAKE CARD CLICKABLE ----------------------- */
+/* ----------------------- NEW CLICKABLE CARD STYLES (NO HIDDEN BUTTON HACK) ----------------------- */
 
-/* Target the Streamlit button wrapper div inside the column (st.button is the first element) */
-/* This hack collapses the space the button takes up while keeping it clickable. */
-.stApp div[data-testid^="stColumn"] div.stButton:has(button[key^="select_"]) {
-    /* New aggressive settings to completely collapse the container */
-    padding: 0 !important;
-    margin: 0 !important;
-    height: 0px !important; /* Set to 0 to remove height entirely */
-    line-height: 0px !important; /* Set line-height to 0 */
-    position: relative;
-    z-index: 10; /* Ensure button is on top for clicking */
-    opacity: 0; /* Fully transparent now */
-    overflow: hidden; 
-}
-
-/* Ensure the button element inside is also stripped of all visible styles */
-.stApp div[data-testid^="stColumn"] div.stButton > button[key^="select_"] {
-    background: transparent !important;
-    border: none !important;
-    color: transparent !important;
-    width: 100% !important;
-    height: 200%; /* Make button tall enough to cover the card area it overlaps */
-    padding: 0;
-    margin: 0;
-    box-shadow: none !important;
-    transition: none !important;
-    cursor: pointer;
-    /* Move button up to cover where the card will be */
-    transform: translateY(-100%); 
-}
-
-/* Event Cards - Visual content container */
-.event-card-container {
+/* Visual content container for image */
+.event-image-container {
     padding: 10px;
-    cursor: pointer;
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s;
     position: relative;
-    /* Adjusted negative margin to ensure the visual card perfectly overlaps the collapsed button's space */
-    margin-top: -100px; /* Increased negative margin to counteract the original button padding/margin */
     z-index: 5; 
 }
-/* Netflix Red Glow and Zoom on Hover */
-.event-card-container:hover {
-    transform: scale(1.05); /* Smooth zoom effect */
-    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6); /* Strong red glow on hover */
-    z-index: 6; /* Bring hovered card slightly forward */
-}
 
-/* Inner card styling for text alignment */
+/* Event Title Card - Visual content container */
 .event-card {
     border-radius: 8px;
     background: #222; /* Darker card background */
-    padding: 15px 5px; /* Reduced vertical padding for better look */
+    padding: 15px 5px; 
     margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
-    /* FIX: Center the event name text */
     text-align: center; 
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s;
+}
+
+/* Link/Title styling for the clickable text */
+.event-card a {
+    text-decoration: none !important; /* Remove link underline */
+    color: white !important; /* White text for contrast */
+    font-weight: 700;
+    display: block; /* Make the entire div area clickable via the link inside */
+}
+
+/* Netflix Red Glow and Zoom on Hover - Applied to the visual element */
+.event-card:hover {
+    transform: scale(1.05); /* Smooth zoom effect */
+    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6); /* Strong red glow on hover */
+    z-index: 6; /* Bring hovered card slightly forward */
+    background: #333; /* Slightly lighter background on hover */
 }
 
 /* Image styling inside the container */
-.event-card-container img {
+.event-image-container img {
     border-radius: 4px 4px 0 0; /* Match Netflix style */
 }
 
@@ -240,35 +225,36 @@ def get_blockchain_stats():
 def show_events():
     """
     Renders the main event selection screen.
-    The entire card area is now the clickable trigger, with no visible button gap.
+    The Event Name text is now the clickable element via a markdown link.
     """
     st.session_state.mode = None
     
     # Use fluid columns for responsiveness
     cols = st.columns(len(events)) 
     for idx, (ename, edata) in enumerate(events.items()):
+        # Create the navigation URL string for this event card
+        nav_url = f'?event={ename}'
+        
         with cols[idx]:
-            # 1. Place the transparent button first. 
-            # The CSS handles making its container visually disappear (height: 0px, opacity: 0)
-            if st.button("", key=f"select_{ename}"):
-                st.session_state.event_selected = ename
-                st.rerun() 
-            
-            # 2. Place the visual content (Image and Title) second.
-            # The CSS uses a negative margin to pull this content up into the button's collapsed space.
-            # This is the element that receives the hover effect.
-            st.markdown("<div class='event-card-container'>", unsafe_allow_html=True) 
-            
-            # Use st.image for the actual image display
+            # 1. Image Container (The top part of the card)
+            st.markdown("<div class='event-image-container'>", unsafe_allow_html=True) 
             try:
                 img = Image.open(edata["image"])
                 st.image(img, use_container_width=True)
             except FileNotFoundError:
                  st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
-            
-            # The card title structure (text is now centered via CSS)
-            st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True) 
+            
+            # 2. Clickable Title Card (The bottom part of the card, with hover effect)
+            # The title is wrapped in an <a> tag using markdown, pointing to the nav_url
+            st.markdown(f"""
+            <div class='event-card'>
+                <a href="{nav_url}">
+                    <h3 style='color:inherit; margin:0;'>{ename}</h3>
+                </a>
+            </div>
+            """, unsafe_allow_html=True) 
+
 
 def show_event_actions(event_name):
     """
@@ -294,7 +280,7 @@ def show_event_actions(event_name):
             st.image(img, use_container_width=True)
         except FileNotFoundError:
             # Changed use_column_width=True to use_container_width=True
-            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
+            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_details:
@@ -320,8 +306,9 @@ def show_event_actions(event_name):
         if st.session_state.mode is None:
             c1, c2, c3 = st.columns(3)
             with c1:
+                # Back button now clears the event query param
                 if st.button("⬅ Back to Events"):
-                    st.session_state.event_selected = None
+                    st.query_params.clear()
                     st.rerun() 
             with c2:
                 if st.button("Buy Ticket", key="action_buy"):
@@ -481,10 +468,10 @@ def verify_tickets(event_name):
         st.rerun()
 
 # ------------------------ PAGE FLOW ------------------------
-if st.session_state.event_selected is None:
+if event_selected is None:
     show_events()
 else:
-    show_event_actions(st.session_state.event_selected)
+    show_event_actions(event_selected)
 
 # ------------------------ DEVELOPER FOOTER ------------------------
 blocks_count, purchase_count, check_in_count = get_blockchain_stats()
