@@ -135,10 +135,9 @@ st.markdown("<h1>Event Ticket Portal</h1>", unsafe_allow_html=True)
 # ------------------------ HELPER FUNCTIONS ------------------------
 def capacity_info(event_name):
     """Fetches real-time status by reading the blockchain."""
-    # The cache is recalculated here to ensure the most up-to-date data for the check-in app
-    _, scanned, remaining, _, purchased_tickets_cache = get_ticket_status(st.session_state.blockchain, event_name)
+    total_purchased, scanned, remaining, _, purchased_tickets_cache = get_ticket_status(st.session_state.blockchain, event_name)
     st.session_state.purchased_tickets_cache = purchased_tickets_cache 
-    return remaining, scanned
+    return remaining, scanned, total_purchased
 
 def get_blockchain_stats():
     """Calculates counts for the PDF design footer."""
@@ -180,7 +179,7 @@ def show_event_actions(event_name):
     st.markdown(f"<h2 style='text-align:center;color:white;'>{event_name}</h2>", unsafe_allow_html=True)
     
     # Display statistics
-    remaining, scanned = capacity_info(event_name)
+    remaining, scanned, _ = capacity_info(event_name)
     st.markdown(f"""
     <div class='event-stats'>
         <div>Available Tickets: {remaining}</div>
@@ -208,10 +207,7 @@ def show_event_actions(event_name):
         if st.session_state.mode == "buy":
             buy_tickets(event_name, remaining)
         elif st.session_state.mode == "verify":
-            # Redirect message for Check-In (as per design structure)
-            st.warning("Gate attendants must use the dedicated **Ticket Verification App** (`verify_ticket.py`) to check-in guests.")
-            st.subheader("Check-In Status View (Sales Portal)")
-            st.info("Verification is handled in a separate, secure application.")
+            verify_tickets(event_name)
 
 
 def buy_tickets(event_name, remaining):
@@ -259,11 +255,94 @@ def buy_tickets(event_name, remaining):
         body = (f"Hello {name},\n\nYour purchase for {event_name} has been confirmed.\n"
                 f"Total Tickets Purchased: {qty}\n"
                 f"Your Ticket ID: {ticket_id}\n\n"
-                f"Present this ID at the venue for check-in via the Ticket Verification App.\n\n"
+                f"Present this ID at the venue for check-in.\n\n"
                 f"--- Confirmation Sent from Event Portal ---")
                 
         send_email(email, f"{event_name} Ticket Confirmation", body)
         st.rerun() # Refresh to show new capacity
+
+
+def verify_tickets(event_name):
+    """Handles the in-app ticket verification (Check-In) logic."""
+    st.subheader("Gate Attendant: Check-In")
+
+    # Fetch the latest status for verification checks
+    _, _, _, ticket_details, purchased_tickets_cache = get_ticket_status(st.session_state.blockchain, event_name)
+
+    # Verification Form
+    ticket_id = st.text_input("Enter Ticket ID").upper()
+    email_input = st.text_input("Enter Customer Email", help="Required for double-checking customer identity.")
+    num_entering = st.number_input("No. of People Entering", min_value=1, value=1, key="verify_num", help="How many people are entering using this ID?")
+
+    if st.button("Process Check-In"):
+        if not ticket_id or not email_input:
+            st.warning("Please enter both Ticket ID and Customer Email.")
+            return
+
+        # 1. Get status and purchase info
+        t_status = ticket_details.get(ticket_id)
+        t_purchase_info = purchased_tickets_cache.get(ticket_id)
+        
+        # 2. Basic Validation
+        if not t_status or not t_purchase_info:
+            st.error("❌ Invalid Ticket ID for this event or ticket was not found.")
+            return
+
+        # 3. Email Security Check (using strip and lower for robustness)
+        if t_purchase_info['email'].lower() != email_input.strip().lower(): 
+            st.error("❌ Email address does not match the purchasing customer on record for this Ticket ID.")
+            return
+
+        # 4. Usage Validation
+        total_tickets = t_status["qty"]
+        scanned_tickets = t_status["scanned"]
+        remaining_to_use = total_tickets - scanned_tickets
+        
+        if remaining_to_use <= 0:
+            st.error("❌ Ticket has already been fully used.")
+            return
+            
+        if num_entering > remaining_to_use:
+            st.error(f"❌ Cannot check in {num_entering} guests. Only {remaining_to_use} tickets remain for this Ticket ID (Used: {scanned_tickets}/{total_tickets}).")
+            return
+            
+        # 5. Process Check-in (Add VERIFY transaction and mine block)
+        st.session_state.blockchain.add_transaction({
+            "type": "VERIFY", 
+            "ticket_id": ticket_id, 
+            "event": event_name, 
+            "num_entering": num_entering,
+            "verifier": "Main Portal Check-In", 
+            "timestamp": time.time()
+        })
+        st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"])
+        
+        # 6. Recalculate status and display success
+        _, _, _, new_ticket_details, _ = get_ticket_status(st.session_state.blockchain, event_name)
+        new_scanned_tickets = new_ticket_details[ticket_id]["scanned"]
+        new_remaining = total_tickets - new_scanned_tickets
+        
+        st.balloons()
+        st.success(f"✅ VERIFIED {num_entering} GUEST(S) for {t_purchase_info['name']}. Remaining: **{new_remaining}**")
+
+        # 7. Send confirmation email
+        email_body = (
+            f"Hello {t_purchase_info['name']},\n\n"
+            f"A check-in was successfully processed for your **{event_name}** ticket.\n\n"
+            f"**Ticket ID:** {ticket_id}\n"
+            f"**Guests Checked In Now:** {num_entering}\n"
+            f"**Total Used Tickets:** {new_scanned_tickets} / {total_tickets}\n"
+            f"**Tickets Remaining:** {new_remaining}\n\n"
+            f"--- Check-In Confirmation from Event Portal ---"
+        )
+        send_email(
+            t_purchase_info['email'], 
+            f"Check-In Update: {event_name} - {num_entering} Guests Entered", 
+            email_body
+        )
+        
+        # 8. Refresh the app state to clear fields and update stats
+        st.rerun()
 
 # ------------------------ PAGE FLOW ------------------------
 if st.session_state.event_selected is None:
