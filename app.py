@@ -82,7 +82,20 @@ h1 {
     padding: 10px;
     position: relative;
     z-index: 5; 
+    /* FIX: Enforce 2:3 aspect ratio for visual consistency */
+    aspect-ratio: 2 / 3; 
+    overflow: hidden; 
 }
+
+/* Image styling inside the container */
+.event-image-container img {
+    border-radius: 4px 4px 0 0; /* Match Netflix style */
+    /* FIX: Ensure image covers the fixed container size, cropping if necessary */
+    width: 100%;
+    height: 100%;
+    object-fit: cover; 
+}
+
 
 /* Event Title Card - Visual content container */
 .event-card {
@@ -112,10 +125,6 @@ h1 {
     background: #333; /* Slightly lighter background on hover */
 }
 
-/* Image styling inside the container */
-.event-image-container img {
-    border-radius: 4px 4px 0 0; /* Match Netflix style */
-}
 
 /* --- Detail View Styles (unchanged) --- */
 .detail-container {
@@ -240,11 +249,16 @@ def show_events():
         with cols[idx]:
             # 1. Image Container (The top part of the card)
             st.markdown("<div class='event-image-container'>", unsafe_allow_html=True) 
+            
             try:
                 img = Image.open(edata["image"])
+                # We use use_container_width=True to make Streamlit render the image component 
+                # inside the column, and the CSS forces the aspect ratio and crop.
                 st.image(img, use_container_width=True)
             except FileNotFoundError:
+                 # If the image is missing, use a placeholder that also respects the 2:3 aspect ratio
                  st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
+            
             st.markdown("</div>", unsafe_allow_html=True) 
             
             # 2. Clickable Title Card (The bottom part of the card, with hover effect)
