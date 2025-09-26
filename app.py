@@ -15,7 +15,7 @@ blockchain = st.session_state.blockchain
 # Page config
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
 
-# --- CSS for Netflix-style professional layout ---
+# --- CSS for Netflix-style layout and animation ---
 st.markdown("""
 <style>
 div.stButton > button {
@@ -49,7 +49,7 @@ div.stButton > button:hover {
     height: 140px;
     border-radius: 8px;
     box-shadow: 2px 2px 8px #aaa;
-    transition: transform 0.3s;
+    transition: transform 0.5s;
 }
 .event-card img:hover {
     transform: scale(1.05);
@@ -112,18 +112,18 @@ for i, (ename, data) in enumerate(events.items()):
     img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode()
 
-    # Style for selected/other cards
+    # --- Animation: expand selected, fade others ---
     if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
-        style = "transform: scale(1.5); z-index: 10; transition: all 0.5s; margin:0 auto;"
+        style = "transform: scale(1.6); z-index:10; transition: all 0.5s; margin:0 auto;"
         opacity = 1
     elif st.session_state.view == "event_detail":
-        style = "transform: scale(0.8); opacity:0.2; transition: all 0.5s;"
-        opacity = 0.2
+        style = "transform: scale(0.8); opacity:0; transition: all 0.5s;"
+        opacity = 0
     else:
         style = "transform: scale(1); transition: all 0.5s;"
         opacity = 1
 
-    # --- Card with image, heading, and button ---
+    # --- Event Card ---
     col.markdown(f"""
     <div class="event-card" style="{style}; opacity:{opacity};">
         <img src="data:image/png;base64,{img_str}" />
@@ -131,14 +131,12 @@ for i, (ename, data) in enumerate(events.items()):
     </div>
     """, unsafe_allow_html=True)
 
-    # Button for selecting event
+    # --- Button below card ---
     if st.session_state.view == "events":
         if col.button(f"Select {ename}", key=f"btn_{i}"):
             st.session_state.selected_event = ename
             st.session_state.view = "event_detail"
             st.experimental_rerun()
-
-    # Button for verifying ticket (below card)
     if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
         if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
             st.session_state.show_verification = True
@@ -157,7 +155,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                {selected_event} Details</h2>
     """, unsafe_allow_html=True)
 
-    # --- Show real-time counts only under Event Details ---
+    # --- Real-time Counts ---
     st.markdown(f"""
     <div style='text-align:center; margin-bottom:15px;'>
         <span style='color:#E50914; font-weight:bold; margin-right:20px;'>
