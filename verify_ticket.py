@@ -9,7 +9,21 @@ blockchain = st.session_state.blockchain
 
 # Page config
 st.set_page_config(page_title="Ticket Verification", layout="centered", page_icon="✅")
-st.markdown("<h1 style='text-align:center;color:#004AAD;'>✅ Ticket Verification Portal</h1>", unsafe_allow_html=True)
+
+# --- Netflix-themed Heading ---
+st.markdown("""
+<h1 style='text-align:center;
+           color:#E50914;
+           font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+           font-size:48px;
+           font-weight:bold;
+           letter-spacing:2px;
+           margin-bottom:10px;
+           text-shadow: 2px 2px 4px #000000;'>
+✅ Ticket Verification
+</h1>
+""", unsafe_allow_html=True)
+
 st.markdown("<hr>", unsafe_allow_html=True)
 
 # CSS for Netflix-style button
