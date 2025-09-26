@@ -50,7 +50,7 @@ if event_selected and event_selected not in events:
     event_selected = None
 
 
-# ------------------------ NETFLIX-THEME STYLING (The Fix is Here) ------------------------
+# ------------------------ NETFLIX-THEME STYLING (Spacing Fixes Applied) ------------------------
 st.markdown("""
 <style>
 /* Base Dark Theme & Font */
@@ -67,50 +67,37 @@ h1 {
     font-size: 6em; 
     font-weight: 900;
     letter-spacing: 2px;
-    margin-bottom: 20px;
+    margin-bottom: 40px; /* Increased gap below title */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
-/* ----------------------- FIX: ENFORCING 2:3 ASPECT RATIO ----------------------- */
+/* ----------------------- CARD STYLES (UI/UX FOCUS) ----------------------- */
 
-/* 1. Main Grid Card Container */
+/* Visual content container for image in the main grid */
 .event-image-container {
-    /* Critical: Set padding to 0 and use aspect-ratio strictly */
-    padding: 0;
+    padding: 10px; /* Original padding restored */
     position: relative;
     z-index: 5; 
-    aspect-ratio: 2 / 3; /* Standard Portrait Poster Ratio */
+    /* Softly enforce the 2:3 ratio */
+    aspect-ratio: 2 / 3; 
     overflow: hidden; 
-    /* Force flex to help child elements stretch */
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
-/* 2. Aggressive Targeting for Streamlit Image Component (Data-testid) */
-/* Force the internal Streamlit wrapper to take 100% of the custom container's fixed height */
-.event-image-container [data-testid="stImage"] {
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 100% !important; /* Ensure it respects height constraint */
-}
-
-/* 3. The actual image element */
+/* Image styling inside the container */
 .event-image-container img {
-    border-radius: 4px 4px 0 0;
-    /* Ensure image covers the full 2:3 fixed container size, cropping necessary parts */
+    border-radius: 4px 4px 0 0; /* Match Netflix style */
     width: 100%;
     height: 100%;
     object-fit: cover; 
 }
 
 
-/* Event Title Card - Adjusted to include top/bottom padding now removed from image container */
+/* Event Title Card - Visual content container */
 .event-card {
     border-radius: 8px;
     background: #222; 
     padding: 15px 5px; 
-    margin-bottom: 20px;
+    margin-bottom: 30px; /* Increased margin for better separation between rows of cards */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
     text-align: center; 
@@ -125,7 +112,7 @@ h1 {
     display: block; 
 }
 
-/* Hover Effect */
+/* Netflix Red Glow and Zoom on Hover */
 .event-card:hover {
     transform: scale(1.05); 
     box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6); 
@@ -134,11 +121,12 @@ h1 {
 }
 
 
-/* --- Detail View Styles (Also enforcing 2:3 ratio) --- */
+/* --- Detail View Styles --- */
 .detail-container {
     display: flex;
     gap: 30px;
-    padding: 20px;
+    padding: 30px; /* Increased padding inside the container */
+    margin-bottom: 40px; /* Added margin below the container to separate from the footer */
     background-color: #1a1a1a; 
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
@@ -152,20 +140,13 @@ h1 {
     height: auto;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
     transition: transform 0.3s;
-    /* CRITICAL: Detail view image must adhere to the 2:3 ratio */
+    /* Softly enforcing aspect ratio */
     aspect-ratio: 2 / 3;
-}
-.event-image-card [data-testid="stImage"] {
-    width: 100% !important;
-    height: 100% !important;
 }
 .event-image-card img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
-.event-image-card:hover {
-    transform: scale(1.02);
 }
 
 .event-description-box {
@@ -176,13 +157,13 @@ h1 {
 .event-description-box h2 {
     color: #E50914; 
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: 15px; /* Added gap below detail title */
     font-size: 2.5em;
 }
 .event-description-box p {
     font-size: 1.1em;
     line-height: 1.6;
-    margin-bottom: 20px;
+    margin-bottom: 30px; /* Added gap below description paragraph */
     color: white;
 }
 .event-description-box .detail-item strong {
@@ -193,16 +174,10 @@ h1 {
     background-color: #333;
     padding: 15px;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 30px; /* Added gap below stats box */
     text-align: center;
     border-left: 5px solid #E50914;
     transition: all 0.3s;
-}
-.event-stats div {
-    font-size: 1.1em;
-    font-weight: 600;
-    color: #fff;
-    margin: 5px 0;
 }
 
 /* Standard Streamlit Button Styling (Red with black thin border) */
@@ -213,7 +188,7 @@ div.stButton > button {
     padding: 10px 20px;
     font-size: 1em;
     border-radius: 6px;
-    margin-top: 10px;
+    margin-top: 15px; /* Slightly increased top margin */
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
     font-weight: bold;
@@ -270,7 +245,7 @@ def show_events():
             
             try:
                 img = Image.open(edata["image"])
-                # st.image renders the image component, which is then aggressively constrained by the CSS 
+                # st.image renders the image component, which is then constrained by the CSS 
                 st.image(img, use_container_width=True)
             except FileNotFoundError:
                  # Placeholder ensures missing images still respect the 2:3 ratio
