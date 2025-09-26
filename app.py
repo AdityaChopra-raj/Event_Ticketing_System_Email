@@ -1,213 +1,212 @@
 import streamlit as st
-import uuid
-from blockchain import Blockchain
-from events_data import events
-from PIL import Image
-import os
-from io import BytesIO
-import base64
-import smtplib
-from email.mime.multipart import MIMEMultipart
+import hashlib, json, time, smtplib, ssl
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from typing import List, Dict, Any
 
-# ---------------------- SMTP CONFIG ----------------------
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-EMAIL_ADDRESS = st.secrets["EMAIL_ADDRESS"]
-EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
+# ----------------------------------------------------------------------
+# -------------------------  BLOCKCHAIN LOGIC  -------------------------
+# ----------------------------------------------------------------------
+class Blockchain:
+    def __init__(self):
+        self.chain: List[Dict[str, Any]] = []
+        self.pending_transactions: List[Dict[str, Any]] = []
+        self.create_block(previous_hash="0")
 
-# ---------------------- EMAIL FUNCTION ----------------------
-def send_ticket_email(to_email, ticket_id, event_name, num_tickets, customer_name="", action="purchase", num_verified=0, remaining=0):
+    def create_block(self, previous_hash: str) -> Dict[str, Any]:
+        block = {
+            "index": len(self.chain) + 1,
+            "timestamp": time.time(),
+            "transactions": self.pending_transactions,
+            "previous_hash": previous_hash,
+            "hash": "",
+        }
+        block["hash"] = self.hash_block(block)
+        self.pending_transactions = []
+        self.chain.append(block)
+        return block
+
+    def add_transaction(self, transaction: Dict[str, Any]) -> int:
+        self.pending_transactions.append(transaction)
+        return self.last_block["index"] + 1
+
+    @property
+    def last_block(self) -> Dict[str, Any]:
+        return self.chain[-1]
+
+    @staticmethod
+    def hash_block(block: Dict[str, Any]) -> str:
+        temp = block.copy()
+        temp["hash"] = ""
+        return hashlib.sha256(json.dumps(temp, sort_keys=True).encode()).hexdigest()
+
+# ----------------------------------------------------------------------
+# ---------------------------  EMAIL UTILS  ----------------------------
+# ----------------------------------------------------------------------
+def send_email(to_address: str, subject: str, body: str):
+    """Send email via Gmail SMTP using credentials in .streamlit/secrets.toml"""
+    email_user = st.secrets["email"]["address"]
+    email_pass = st.secrets["email"]["password"]
+
     msg = MIMEMultipart()
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = to_email
+    msg["From"] = email_user
+    msg["To"] = to_address
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
 
-    if action == "purchase":
-        msg['Subject'] = f"🎫 Your Ticket for {event_name}"
-        body = f"""
-        <html>
-        <body>
-        <h2 style="color:#E50914;">Hello {customer_name},</h2>
-        <p>Thank you for purchasing tickets for <b>{event_name}</b>!</p>
-        <p><b>Ticket ID:</b> {ticket_id}</p>
-        <p><b>Number of tickets:</b> {num_tickets}</p>
-        <p>Keep this Ticket ID safe. You will need it to verify entry at the event.</p>
-        <p>We look forward to seeing you!</p>
-        <hr>
-        <p style="font-size:12px;color:gray;">This is an automated message from Event Ticket Portal.</p>
-        </body>
-        </html>
-        """
-    elif action == "verify":
-        msg['Subject'] = f"✅ Ticket Verification Update for {event_name}"
-        body = f"""
-        <html>
-        <body>
-        <h2 style="color:#E50914;">Hello {customer_name},</h2>
-        <p>Your Ticket ID <b>{ticket_id}</b> for <b>{event_name}</b> has been used for entry.</p>
-        <p><b>Number of tickets verified:</b> {num_verified}</p>
-        <p><b>Remaining tickets under this Ticket ID:</b> {remaining}</p>
-        <p>Thank you for attending, and enjoy the event!</p>
-        <hr>
-        <p style="font-size:12px;color:gray;">This is an automated message from Event Ticket Portal.</p>
-        </body>
-        </html>
-        """
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+        server.login(email_user, email_pass)
+        server.sendmail(email_user, to_address, msg.as_string())
 
-    msg.attach(MIMEText(body, 'html'))
-
-    try:
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        print(f"Email sent to {to_email}")
-    except Exception as e:
-        print(f"Error sending email: {e}")
-
-# ---------------------- SESSION STATE ----------------------
-if "view" not in st.session_state:
-    st.session_state.view = "events"
-if "selected_event" not in st.session_state:
-    st.session_state.selected_event = None
-if "action" not in st.session_state:
-    st.session_state.action = "Buy Ticket"
+# ----------------------------------------------------------------------
+# --------------------------  APP STATE INIT  --------------------------
+# ----------------------------------------------------------------------
 if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
-blockchain = st.session_state.blockchain
+if "tickets" not in st.session_state:
+    st.session_state.tickets = {}    # ticket_id -> {event, name, qty, verified}
+if "event_selected" not in st.session_state:
+    st.session_state.event_selected = None
+if "mode" not in st.session_state:
+    st.session_state.mode = None
 
-# ---------------------- PAGE CONFIG ----------------------
-st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
-
-# ---------------------- CSS ----------------------
-st.markdown("""
-<style>
-div.stButton > button {
-    background-color: #E50914;
-    color: white;
-    font-weight: bold;
-    padding: 10px 16px;
-    border-radius: 6px;
-    width: 200px;
-    margin: 10px auto;
-    display: block;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    font-size: 16px;
-    box-shadow: 2px 2px 8px #aaa;
-    transition: transform 0.3s, opacity 0.5s;
-    text-align: center;
-    line-height: 1.5;
+EVENTS = {
+    "Navratri Pooja": 100,
+    "Diwali Dance": 150,
+    "Freshers": 200,
+    "Ravan Dehan": 120
 }
-div.stButton > button:hover {
-    transform: scale(1.05);
-}
-.event-card {
-    display: inline-block;
-    text-align: center;
-    margin: 15px;
-    width: 250px;
-    vertical-align: top;
-    transition: transform 0.5s, opacity 0.5s;
-}
-.event-card img {
-    width: 100%;
-    height: 140px;
-    border-radius: 8px;
-    box-shadow: 2px 2px 8px #aaa;
-    transition: transform 0.5s;
-}
-.event-card img:hover {
-    transform: scale(1.05);
-}
-.event-card h4 {
-    font-size: 18px;
-    font-weight: bold;
-    color: white;
-    margin: 8px 0 4px 0;
-    word-wrap: break-word;
-}
-</style>
-""", unsafe_allow_html=True)
 
-# ---------------------- HEADINGS ----------------------
-st.markdown("""
-<h1 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
-           font-size:48px;font-weight:bold;letter-spacing:2px;margin-bottom:10px;
-           text-shadow: 2px 2px 4px #000;'>🎬 Event Ticket Portal</h1>
-""", unsafe_allow_html=True)
-st.markdown("""
-<h2 style='text-align:center;color:white;background-color:#141414;
-           font-family:Helvetica, Arial, sans-serif;font-size:32px;font-weight:bold;
-           padding:10px 0;border-radius:8px;letter-spacing:1px;margin-bottom:20px;
-           text-shadow:1px 1px 3px #000;'>Select Your Event</h2>
-""", unsafe_allow_html=True)
+# ----------------------------------------------------------------------
+# ---------------------------  STYLING  --------------------------------
+# ----------------------------------------------------------------------
+st.set_page_config(page_title="Event Ticket Portal", layout="wide")
 
-# ---------------------- BACK BUTTON ----------------------
-if st.session_state.view == "event_detail":
-    if st.button("← Back to Events"):
-        st.session_state.view = "events"
-        st.session_state.selected_event = None
+st.markdown(
+    """
+    <style>
+    body {background-color:#141414;color:white;}
+    .event-card {border-radius:15px;padding:30px;margin:20px;
+                 background:#222;color:white;text-align:center;}
+    .event-button button {background:#E50914;color:white;border:none;
+                          padding:12px 25px;font-size:18px;border-radius:8px;
+                          margin-top:15px;cursor:pointer;}
+    .event-button button:hover {background:#f6121d;}
+    .footer {position:fixed;bottom:10px;left:20px;font-size:16px;color:#E50914;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# ---------------------- EVENT CARDS ----------------------
-st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
-cols = st.columns(4)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+st.markdown("<h1 style='text-align:center;color:#E50914;'>Event Ticket Portal</h1>", unsafe_allow_html=True)
 
-for i, (ename, data) in enumerate(events.items()):
-    col = cols[i % 4]
-    img_path = os.path.join(BASE_DIR, data["image"])
-    if not os.path.exists(img_path):
-        col.error(f"Image not found: {img_path}")
-        continue
-    img = Image.open(img_path)
-    buffered = BytesIO()
-    img.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
+# ----------------------------------------------------------------------
+# ----------------------------  UI LOGIC  ------------------------------
+# ----------------------------------------------------------------------
+def show_events():
+    st.session_state.mode = None
+    cols = st.columns(len(EVENTS))
+    for i, (event, capacity) in enumerate(EVENTS.items()):
+        with cols[i]:
+            with st.container():
+                st.markdown(f"<div class='event-card'><h2>{event}</h2></div>", unsafe_allow_html=True)
+                if st.button("Select", key=f"select_{event}"):
+                    st.session_state.event_selected = event
 
-    # Expand selected, fade others
-    if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
-        style = "transform: scale(1.6); z-index:10; transition: all 0.5s; margin:0 auto;"
-        opacity = 1
-        show_heading_button = False
-    elif st.session_state.view == "event_detail":
-        style = "transform: scale(0.8); opacity:0; transition: all 0.5s;"
-        opacity = 0
-        show_heading_button = False
+def show_event_actions(event_name):
+    st.markdown(f"<h2 style='text-align:center;color:#E50914;'>{event_name}</h2>", unsafe_allow_html=True)
+    if st.session_state.mode is None:
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Buy Ticket"):
+                st.session_state.mode = "buy"
+        with col2:
+            if st.button("Verify Ticket"):
+                st.session_state.mode = "verify"
+        if st.button("⬅ Back"):
+            st.session_state.event_selected = None
     else:
-        style = "transform: scale(1); transition: all 0.5s;"
-        opacity = 1
-        show_heading_button = True
+        if st.button("⬅ Back"):
+            st.session_state.event_selected = None
+            st.session_state.mode = None
+        if st.session_state.mode == "buy":
+            buy_tickets(event_name)
+        elif st.session_state.mode == "verify":
+            verify_tickets(event_name)
 
-    card_html = f'<div class="event-card" style="{style}; opacity:{opacity};">'
-    card_html += f'<img src="data:image/png;base64,{img_str}" />'
-    if show_heading_button:
-        card_html += f'<h4>{ename}</h4>'
-    card_html += '</div>'
-    col.markdown(card_html, unsafe_allow_html=True)
+def buy_tickets(event_name):
+    st.subheader("Enter Your Details to Buy Ticket")
+    name = st.text_input("Name")
+    email = st.text_input("Email")
+    qty = st.number_input("Number of Tickets (max 10)", min_value=1, max_value=10, value=1)
+    capacity = EVENTS[event_name]
+    scanned = sum(t["verified"] for t in st.session_state.tickets.values() if t["event"] == event_name)
+    remaining = capacity - scanned
+    st.write(f"**Tickets Scanned:** {scanned} | **Remaining Capacity:** {remaining}")
 
-    # Buttons under card
-    if show_heading_button:
-        if st.session_state.view == "events":
-            if col.button(f"Select {ename}", key=f"btn_{i}"):
-                st.session_state.selected_event = ename
-                st.session_state.view = "event_detail"
+    if st.button("Confirm Purchase"):
+        if qty > remaining:
+            st.error("Not enough capacity.")
+            return
+        ticket_id = hashlib.sha256(f"{name}{time.time()}".encode()).hexdigest()[:10].upper()
+        st.session_state.tickets[ticket_id] = {"event": event_name, "name": name,
+                                               "qty": qty, "verified": 0, "email": email}
+        st.session_state.blockchain.add_transaction({"ticket_id": ticket_id,
+                                                     "event": event_name,
+                                                     "quantity": qty,
+                                                     "holder": name})
+        st.session_state.blockchain.create_block(
+            previous_hash=st.session_state.blockchain.last_block["hash"]
+        )
+        st.success(f"Purchase Successful! Your Ticket ID is: {ticket_id}")
+        if email:
+            body = (f"Hello {name},\n\n"
+                    f"Thank you for purchasing {qty} ticket(s) for {event_name}.\n"
+                    f"Your Ticket ID is: {ticket_id}\n\n"
+                    f"Please show this ID at entry for verification.\n\n"
+                    f"Enjoy the event!\n")
+            send_email(email, f"Your {event_name} Ticket", body)
 
-st.markdown("</div>", unsafe_allow_html=True)
+def verify_tickets(event_name):
+    st.subheader("Verify Ticket")
+    ticket_id = st.text_input("Enter Ticket ID")
+    num_entering = st.number_input("Number of people entering now", min_value=1, max_value=10, value=1)
+    if st.button("Verify"):
+        t = st.session_state.tickets.get(ticket_id)
+        if not t or t["event"] != event_name:
+            st.error("Invalid Ticket ID.")
+            return
+        remaining = t["qty"] - t["verified"]
+        if remaining <= 0:
+            st.error("All tickets for this Ticket ID have already been used.")
+            return
+        if num_entering > remaining:
+            st.error(f"Only {remaining} ticket(s) remaining on this Ticket ID.")
+            return
+        t["verified"] += num_entering
+        st.success(f"Verified {num_entering} guest(s). Remaining on this Ticket ID: {t['qty'] - t['verified']}")
+        if t["email"]:
+            body = (f"Hello {t['name']},\n\n"
+                    f"{num_entering} guest(s) have just entered the venue using your Ticket ID {ticket_id} "
+                    f"for {event_name}.\n"
+                    f"Tickets used: {t['verified']} of {t['qty']}.\n"
+                    f"Remaining: {t['qty'] - t['verified']}.\n\n"
+                    f"Thank you!")
+            send_email(t["email"], f"{event_name} Ticket Verification Update", body)
 
-# ---------------------- EVENT DETAIL ----------------------
-if st.session_state.view == "event_detail" and st.session_state.selected_event:
-    selected_event = st.session_state.selected_event
+# ----------------------------------------------------------------------
+# ---------------------------  PAGE FLOW  ------------------------------
+# ----------------------------------------------------------------------
+if st.session_state.event_selected is None:
+    show_events()
+else:
+    show_event_actions(st.session_state.event_selected)
 
-    st.markdown(f"<h2 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif; \
-               font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>\
-               {selected_event} Details</h2>", unsafe_allow_html=True)
-
-    st.markdown(f"<div style='text-align:center; margin-bottom:15px;'>\
-        <span style='color:#E50914; font-weight:bold; margin-right:20px;'>Tickets Scanned: {events[selected_event]['tickets_scanned']}</span>\
-        <span style='color:#E50914; font-weight:bold;'>Remaining Capacity: {events[selected_event]['capacity']}</span></div>", unsafe_allow_html=True)
-
-    # ---------------------- ACTION CHOICE ----------------------
-    action = st.radio("Choose an action", ["Buy Ticket", "Verify Ticket"], horizontal=True)
-    st.session_state.action = action
+# ----------------------------------------------------------------------
+# ----------------------  BLOCKCHAIN COUNTER  --------------------------
+# ----------------------------------------------------------------------
+st.markdown(
+    f"<div class='footer'>Blocks Created: {len(st.session_state.blockchain.chain)}</div>",
+    unsafe_allow_html=True
+)
