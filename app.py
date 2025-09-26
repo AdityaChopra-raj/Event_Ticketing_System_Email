@@ -10,11 +10,27 @@ from blockchain import Blockchain, get_ticket_status
 from events_data import events 
 
 # ------------------------ CONFIGURATION & SECRETS ------------------------
-EMAIL_ADDRESS = st.secrets["email"]["address"]
-EMAIL_PASSWORD = st.secrets["email"]["password"]
+# FALLBACK: Use try/except for st.secrets to allow local execution without TOML file
+try:
+    EMAIL_ADDRESS = st.secrets["email"]["address"]
+    EMAIL_PASSWORD = st.secrets["email"]["password"]
+    EMAIL_SECRET_LOADED = True
+except KeyError:
+    # Set safe, non-functional placeholders if secrets.toml is missing or misconfigured
+    EMAIL_ADDRESS = "placeholder@example.com"
+    EMAIL_PASSWORD = "app_password_placeholder"
+    EMAIL_SECRET_LOADED = False
+    st.warning("⚠️ Email secrets not loaded. Email functionality is disabled.")
+
 
 def send_email(to_email, subject, body):
     """Sends confirmation emails."""
+    
+    # Do not attempt to send if secrets failed to load
+    if not EMAIL_SECRET_LOADED:
+        st.info(f"Email skipped: Confirmation for '{to_email}' not sent (Secrets error).")
+        return
+
     msg = MIMEMultipart()
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = to_email
@@ -27,7 +43,8 @@ def send_email(to_email, subject, body):
             server.send_message(msg)
         st.toast("Email sent successfully!", icon='📧')
     except Exception as e:
-        st.error(f"Error sending email. Check secrets.toml and App Password. Error: {e}")
+        # Display a more helpful error message for email delivery issues
+        st.error(f"Error sending email: Check firewall/network or if your App Password is correct. Error: {e}")
 
 
 # ------------------------ APP STATE & INITIALIZATION ------------------------
