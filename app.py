@@ -30,22 +30,23 @@ div.stButton > button {
     cursor: pointer;
     font-family: Arial, sans-serif;
     box-shadow: 2px 2px 6px #aaa;
-    transition: transform 0.2s;
+    transition: transform 0.3s, opacity 0.5s;
 }
-div.stButton > button:hover, a button:hover {
+div.stButton > button:hover {
     transform: scale(1.05);
 }
 .event-card {
     display: inline-block;
     text-align: center;
     margin: 10px;
+    transition: transform 0.5s, opacity 0.5s;
 }
 .event-card img {
     width: 250px;
     height: 140px;
     border-radius: 8px;
     box-shadow: 2px 2px 6px #aaa;
-    transition: transform 0.2s;
+    transition: transform 0.3s;
 }
 .event-card img:hover {
     transform: scale(1.05);
@@ -67,7 +68,9 @@ st.markdown("""
            text-shadow:1px 1px 3px #000;'>Select Your Event</h2>
 """, unsafe_allow_html=True)
 
-# --- Initialize session state ---
+# --- Session State ---
+if "view" not in st.session_state:
+    st.session_state.view = "events"  # events view or event_detail
 if "selected_event" not in st.session_state:
     st.session_state.selected_event = None
 if "show_verification" not in st.session_state:
@@ -75,7 +78,14 @@ if "show_verification" not in st.session_state:
 if "verify_event" not in st.session_state:
     st.session_state.verify_event = None
 
-# --- Display event cards with purchase & verify buttons ---
+# --- Back button ---
+if st.session_state.view == "event_detail":
+    if st.button("← Back to Events"):
+        st.session_state.view = "events"
+        st.session_state.selected_event = None
+        st.session_state.show_verification = False
+
+# --- Display Event Cards ---
 st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 cols = st.columns(4)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -91,9 +101,16 @@ for i, (ename, data) in enumerate(events.items()):
     img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode()
 
-    # Display event card
+    # Fade others when one is selected
+    if st.session_state.view == "event_detail" and st.session_state.selected_event != ename:
+        opacity = 0.1
+        scale = 0.8
+    else:
+        opacity = 1
+        scale = 1
+
     col.markdown(f"""
-    <div class="event-card">
+    <div class="event-card" style="opacity:{opacity}; transform: scale({scale}); transition: all 0.5s;">
         <img src="data:image/png;base64,{img_str}" />
         <h4 style='margin:5px 0 2px 0;color:white;'>{ename}</h4>
         <p style='font-size:12px;margin:2px 0;color:#E50914;'>Tickets Scanned: <b>{data['tickets_scanned']}</b></p>
@@ -101,26 +118,31 @@ for i, (ename, data) in enumerate(events.items()):
     </div>
     """, unsafe_allow_html=True)
 
-    # Button to select event for purchase
-    if col.button(f"Select {ename}", key=f"btn_{i}"):
-        st.session_state.selected_event = ename
+    # Buttons only active for events view
+    if st.session_state.view == "events":
+        if col.button(f"Select {ename}", key=f"btn_{i}"):
+            st.session_state.selected_event = ename
+            st.session_state.view = "event_detail"
 
-    # Verify Ticket button under each card
-    if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
-        st.session_state.show_verification = True
-        st.session_state.verify_event = ename  # Prefill verification event
+    # Verify Ticket button only for selected event
+    if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
+        if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
+            st.session_state.show_verification = True
+            st.session_state.verify_event = ename
 
 st.markdown("</div>", unsafe_allow_html=True)
-selected_event = st.session_state.selected_event
 
-# --- Buy Ticket Section ---
-if selected_event:
+# --- Event Detail Section ---
+if st.session_state.view == "event_detail" and st.session_state.selected_event:
+    selected_event = st.session_state.selected_event
+
     st.markdown(f"""
     <h2 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
                font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>
-               Selected Event: {selected_event}</h2>
+               {selected_event} Details</h2>
     """, unsafe_allow_html=True)
 
+    # --- Buy Ticket ---
     st.markdown("### Enter Your Details to Buy Ticket")
     name = st.text_input("Name")
     phone = st.text_input("Phone Number")
@@ -153,7 +175,6 @@ if selected_event:
 
             st.success(f"✅ {num_tickets} Ticket(s) Purchased Successfully! Your Ticket ID: **{ticket_id}**")
 
-            # Download ticket
             ticket_text = f"Event: {selected_event}\nName: {name}\nPhone: {phone}\nEmail: {email}\nUID: {uid}\nTicket ID: {ticket_id}\nQuantity: {num_tickets}"
             st.download_button(
                 label="Download Ticket ID",
@@ -177,7 +198,6 @@ if st.session_state.show_verification:
     verify_email = st.text_input("Enter Email for Verification", key="verify_email")
     verify_ticket_id = st.text_input("Enter Ticket ID", key="verify_ticket_id")
 
-    # Number of guests entering at this time
     num_entering = st.number_input("Number of Guests Entering", min_value=1, max_value=10, step=1)
 
     if st.button("Verify Ticket", key="verify_ticket"):
