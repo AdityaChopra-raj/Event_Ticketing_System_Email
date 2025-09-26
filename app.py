@@ -83,6 +83,19 @@ h1 {
     overflow: hidden;
 }
 
+/* Make the button covering the card area invisible and transparent */
+.event-card-button button {
+    background: transparent !important;
+    border: none !important;
+    color: white !important;
+    width: 100% !important; /* Ensure the button covers the whole column area */
+    height: 100% !important;
+    padding: 0;
+    margin: 0;
+    transition: none !important; /* Disable button hover effects */
+    box-shadow: none !important;
+}
+
 /* --- NEW STYLES FOR NETFLIX DETAIL VIEW --- */
 .detail-container {
     display: flex;
@@ -204,25 +217,35 @@ def get_blockchain_stats():
 # ------------------------ UI SCREENS ------------------------
 
 def show_events():
-    """Renders the main event selection screen (Page 1 of PDF)."""
+    """
+    Renders the main event selection screen.
+    The entire card area is now the clickable trigger.
+    """
     st.session_state.mode = None
     
     cols = st.columns(len(events))
     for idx, (ename, edata) in enumerate(events.items()):
         with cols[idx]:
+            # Use a button with an empty label that contains the card content.
+            # The CSS above hides the default button styling, relying on the 'event-card-container' hover effect.
+            st.markdown("<div class='event-card-button'>", unsafe_allow_html=True) 
+            if st.button("", key=f"select_{ename}"):
+                st.session_state.event_selected = ename
+                st.rerun() 
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Re-render content within a new container to display the image and title visually
+            # This visual content sits *over* the invisible button, but the button's click area
+            # is what captures the user's interaction. This is a common Streamlit pattern
+            # to make complex areas clickable.
             st.markdown("<div class='event-card-container'>", unsafe_allow_html=True) 
             try:
                 img = Image.open(edata["image"])
-                # Changed use_column_width=True to use_container_width=True
                 st.image(img, use_container_width=True)
             except FileNotFoundError:
-                 # Changed use_column_width=True to use_container_width=True
                  st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
             
             st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
-            if st.button(f"Select {ename}", key=f"select_{ename}"):
-                st.session_state.event_selected = ename
-                st.rerun() 
             st.markdown("</div>", unsafe_allow_html=True) 
 
 def show_event_actions(event_name):
