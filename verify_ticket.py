@@ -110,8 +110,9 @@ st.markdown(f"""
     </div>
     """, unsafe_allow_html=True)
 
+# --- Verification Form ---
 ticket_id = st.text_input("Enter Ticket ID").upper() 
-email_input = st.text_input("Enter Customer Email", help="Required for double-checking customer identity.") # Email field is back
+email_input = st.text_input("Enter Customer Email", help="Required for double-checking customer identity.") 
 num_entering = st.number_input("No. of People Entering", min_value=1, value=1, key="verify_num", help="How many people are entering using this ID?")
 
 # Verify button
@@ -156,7 +157,6 @@ if st.button("Verify Ticket"):
             blockchain.create_block(blockchain.last_block["hash"])
             
             # 3. Recalculate new status to reflect the check-in
-            # Rerun status calculation to get the absolute latest status after the new block
             _, _, _, new_ticket_details, _ = get_ticket_status(blockchain, st.session_state.verify_event)
             new_scanned_tickets = new_ticket_details[ticket_id]["scanned"]
             new_remaining = total_tickets - new_scanned_tickets
