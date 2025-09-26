@@ -5,6 +5,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import time
+import pandas as pd # <-- NEW: Added for ledger display
 # IMPORT FIX: Centralized Blockchain and helpers
 from blockchain import Blockchain, get_ticket_status
 from events_data import events 
@@ -75,8 +76,10 @@ if "purchased_tickets_cache" not in st.session_state:
 
 st.set_page_config(page_title="Event Ticket Portal", layout="wide")
 
-# Get selected event from query params (URL)
+# Get selected event or admin view from query params (URL)
 event_selected = st.query_params.get("event")
+admin_view = st.query_params.get("view") == "admin" # <-- NEW: Admin view check
+
 if event_selected and event_selected not in events:
     # Handle bad URL param by resetting
     st.query_params.clear()
@@ -510,14 +513,72 @@ def verify_tickets(event_name):
         # 8. Refresh the app state to clear fields and update stats
         st.rerun()
 
+
+def show_admin_audit():
+    """
+    Renders a detailed view of the entire blockchain ledger for auditing.
+    """
+    st.subheader("🔒 Blockchain Audit Ledger")
+    st.markdown("---")
+
+    blockchain_data = st.session_state.blockchain.chain
+    
+    # Back button to return to the main event list
+    if st.button("⬅ Back to Events Dashboard"):
+        # Clear the 'view' parameter to return to the main event list
+        st.query_params.clear()
+        st.rerun()
+
+    if not blockchain_data:
+        st.info("The blockchain is currently empty (only the genesis block exists).")
+        return
+
+    # Iterate through blocks in reverse order (most recent first)
+    for i, block in enumerate(reversed(blockchain_data)):
+        # Calculate the display index 
+        block_index = len(blockchain_data) - 1 - i
+        
+        with st.expander(f"Block #{block_index} (Index: {block['index']}) - {len(block['transactions'])} Transactions", expanded=(i == 0)):
+            
+            # Display core block metadata
+            st.markdown(f"**Timestamp:** `{time.ctime(block['timestamp'])}`")
+            st.code(f"Hash: {block['hash']}", language='text')
+            st.code(f"Previous Hash: {block['previous_hash']}", language='text')
+            
+            st.markdown("#### Transactions:")
+            
+            if block["transactions"]:
+                # Format transactions for display in a pandas DataFrame
+                txns_for_display = []
+                for txn in block["transactions"]:
+                    txn_data = {
+                        "Type": txn.get("type", "N/A"),
+                        "Event": txn.get("event", "N/A"),
+                        "ID": txn.get("ticket_id", "N/A"),
+                        "Qty": txn.get("quantity", txn.get("num_entering", 1)),
+                        "Customer/Verifier": txn.get("holder", txn.get("verifier", "N/A")),
+                        "Email": txn.get("email", "N/A"),
+                        "Time": time.ctime(txn.get("timestamp", 0))
+                    }
+                    txns_for_display.append(txn_data)
+                
+                st.dataframe(pd.DataFrame(txns_for_display), use_container_width=True)
+            else:
+                st.info("No transactions in this block.")
+
 # ------------------------ PAGE FLOW ------------------------
-if event_selected is None:
+if admin_view:
+    show_admin_audit()
+elif event_selected is None:
     show_events()
 else:
     show_event_actions(event_selected)
 
 # ------------------------ DEVELOPER FOOTER ------------------------
 blocks_count, purchase_count, check_in_count = get_blockchain_stats()
-footer_text = f"Blocks Created:{blocks_count}-Purchase:{purchase_count} ; Check In:{check_in_count}"
+footer_text = f"Blocks Created:{blocks_count} | Purchase Txns:{purchase_count} | Check In Txns:{check_in_count}"
 
-st.markdown(f"<div class='footer'>{footer_text} | Dev only (to check all blocks)</div>", unsafe_allow_html=True)
+# NEW: Added a clickable link to switch to the admin view
+audit_link = f"<a href='?view=admin' style='color:#E50914; text-decoration:none; font-weight:bold;'>View Audit Ledger</a>"
+
+st.markdown(f"<div class='footer'>{footer_text} | {audit_link}</div>", unsafe_allow_html=True)
