@@ -75,14 +75,14 @@ h1 {
     font-family: 'Avenir', 'Arial Black', sans-serif; /* Logo-style font */
 }
 
-/* ----------------------- CLICKABLE CARD STYLES ----------------------- */
+/* ----------------------- CLICKABLE CARD STYLES (UI/UX FOCUS) ----------------------- */
 
-/* Visual content container for image */
+/* Visual content container for image in the main grid */
 .event-image-container {
     padding: 10px;
     position: relative;
     z-index: 5; 
-    /* FIX: Enforce 2:3 aspect ratio for visual consistency */
+    /* UI/UX FIX: Enforce 2:3 aspect ratio for all catalog posters */
     aspect-ratio: 2 / 3; 
     overflow: hidden; 
 }
@@ -90,7 +90,7 @@ h1 {
 /* Image styling inside the container */
 .event-image-container img {
     border-radius: 4px 4px 0 0; /* Match Netflix style */
-    /* FIX: Ensure image covers the fixed container size, cropping if necessary */
+    /* UI/UX FIX: Ensure image covers the fixed container size (cropping necessary parts) */
     width: 100%;
     height: 100%;
     object-fit: cover; 
@@ -126,7 +126,7 @@ h1 {
 }
 
 
-/* --- Detail View Styles (unchanged) --- */
+/* --- Detail View Styles --- */
 .detail-container {
     display: flex;
     gap: 30px;
@@ -144,6 +144,14 @@ h1 {
     height: auto;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
     transition: transform 0.3s;
+    
+    /* UI/UX FIX: Detail view image must also adhere to the 2:3 ratio */
+    aspect-ratio: 2 / 3;
+}
+.event-image-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 .event-image-card:hover {
     transform: scale(1.02);
@@ -252,11 +260,11 @@ def show_events():
             
             try:
                 img = Image.open(edata["image"])
-                # We use use_container_width=True to make Streamlit render the image component 
-                # inside the column, and the CSS forces the aspect ratio and crop.
+                # st.image renders the image component, which is then constrained by the CSS 
+                # (aspect-ratio and object-fit: cover) to maintain uniformity.
                 st.image(img, use_container_width=True)
             except FileNotFoundError:
-                 # If the image is missing, use a placeholder that also respects the 2:3 aspect ratio
+                 # Placeholder ensures missing images still respect the 2:3 ratio
                  st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
             
             st.markdown("</div>", unsafe_allow_html=True) 
@@ -292,10 +300,10 @@ def show_event_actions(event_name):
         st.markdown("<div class='event-image-card'>", unsafe_allow_html=True)
         try:
             img = Image.open(edata["image"])
-            # Changed use_column_width=True to use_container_width=True
+            # use_container_width=True combined with the .event-image-card CSS ensures 2:3 ratio
             st.image(img, use_container_width=True)
         except FileNotFoundError:
-            # Changed use_column_width=True to use_container_width=True
+            # Placeholder for detail view
             st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
