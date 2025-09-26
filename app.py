@@ -69,9 +69,11 @@ h1 {
 /* Target the Streamlit button wrapper div inside the column (st.button is the first element) */
 /* This hack collapses the space the button takes up while keeping it clickable. */
 .stApp div[data-testid^="stColumn"] div.stButton:has(button[key^="select_"]) {
+    /* New aggressive settings to completely collapse the container */
     padding: 0 !important;
     margin: 0 !important;
-    height: 1px; /* Minimal height to maintain element structure */
+    height: 0px !important; /* Set to 0 to remove height entirely */
+    line-height: 0px !important; /* Set line-height to 0 */
     position: relative;
     z-index: 10; /* Ensure button is on top for clicking */
     opacity: 0; /* Fully transparent now */
@@ -84,12 +86,14 @@ h1 {
     border: none !important;
     color: transparent !important;
     width: 100% !important;
-    height: 100%;
+    height: 200%; /* Make button tall enough to cover the card area it overlaps */
     padding: 0;
     margin: 0;
     box-shadow: none !important;
     transition: none !important;
     cursor: pointer;
+    /* Move button up to cover where the card will be */
+    transform: translateY(-100%); 
 }
 
 /* Event Cards - Visual content container */
@@ -98,8 +102,8 @@ h1 {
     cursor: pointer;
     transition: transform 0.3s ease-in-out, box-shadow 0.3s;
     position: relative;
-    /* Adjusted negative margin to ensure the visual card perfectly overlaps the collapsed button */
-    margin-top: -65px; 
+    /* Adjusted negative margin to ensure the visual card perfectly overlaps the collapsed button's space */
+    margin-top: -100px; /* Increased negative margin to counteract the original button padding/margin */
     z-index: 5; 
 }
 /* Netflix Red Glow and Zoom on Hover */
@@ -245,7 +249,7 @@ def show_events():
     for idx, (ename, edata) in enumerate(events.items()):
         with cols[idx]:
             # 1. Place the transparent button first. 
-            # The CSS handles making its container visually disappear (height: 1px, opacity: 0)
+            # The CSS handles making its container visually disappear (height: 0px, opacity: 0)
             if st.button("", key=f"select_{ename}"):
                 st.session_state.event_selected = ename
                 st.rerun() 
