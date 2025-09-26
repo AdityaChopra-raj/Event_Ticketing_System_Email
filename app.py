@@ -5,7 +5,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import time
-import pandas as pd # <-- NEW: Added for ledger display
+import pandas as pd
 # IMPORT FIX: Centralized Blockchain and helpers
 from blockchain import Blockchain, get_ticket_status
 from events_data import events 
@@ -78,7 +78,7 @@ st.set_page_config(page_title="Event Ticket Portal", layout="wide")
 
 # Get selected event or admin view from query params (URL)
 event_selected = st.query_params.get("event")
-admin_view = st.query_params.get("view") == "admin" # <-- NEW: Admin view check
+admin_view = st.query_params.get("view") == "admin" # Admin view check
 
 if event_selected and event_selected not in events:
     # Handle bad URL param by resetting
@@ -547,6 +547,8 @@ def show_admin_audit():
     """
     Renders a detailed view of the entire blockchain ledger for auditing, 
     including a downloadable CSV of all transactions.
+    
+    UPDATED: Includes all customer data and the Block Hash for every transaction.
     """
     st.subheader("🔒 Blockchain Audit Ledger")
     st.markdown("---")
@@ -567,25 +569,34 @@ def show_admin_audit():
     # ------------------ 1. Gather ALL Transactions for Report and Display ------------------
     for block in blockchain_data:
         block_index = block['index']
-        block_hash = block['hash']
+        block_hash = block['hash'] # The unique hash of this block (The Ledger Proof)
         block_prev_hash = block['previous_hash']
         
         for txn in block["transactions"]:
-            # Combine common and type-specific fields
+            
+            # Determine Quantity/Guests based on transaction type
+            qty_or_guests = txn.get("quantity", txn.get("num_entering", 0))
+
+            # Combine common and type-specific fields, using 'N/A' for missing fields
             txn_data = {
                 "Block Index": block_index,
                 "Transaction Type": txn.get("type", "N/A"),
+                "Time (Readable)": time.ctime(txn.get("timestamp", 0)),
                 "Event Name": txn.get("event", "N/A"),
                 "Ticket ID": txn.get("ticket_id", "N/A"),
-                # For PURCHASE, this is the quantity; for VERIFY, it's num_entering
-                "Quantity/Guests": txn.get("quantity", txn.get("num_entering", 0)), 
-                "Customer Name": txn.get("holder", "N/A"), # Only present in PURCHASE
-                "Customer Email": txn.get("email", "N/A"), # Only present in PURCHASE
-                "Verifier": txn.get("verifier", "N/A"), # Only present in VERIFY
-                "Timestamp (Unix)": txn.get("timestamp", 0),
-                "Time (Readable)": time.ctime(txn.get("timestamp", 0)),
-                "Block Hash": block_hash,
-                "Previous Block Hash": block_prev_hash
+                
+                # Customer Details (Primary source is PURCHASE transaction)
+                "Customer Name": txn.get("holder", "N/A"), 
+                "Customer Email": txn.get("email", "N/A"), 
+                "Phone Number": txn.get("phone_number", "N/A"), 
+                
+                "Quantity/Guests": qty_or_guests, # Tickets purchased or guests checked in
+                "Verifier": txn.get("verifier", "N/A"), # Gate attendant/system (VERIFY only)
+                
+                # Block/Immutability Details
+                "Block Hash (Ledger Proof)": block_hash, 
+                "Previous Block Hash": block_prev_hash,
+                "Timestamp (Unix)": txn.get("timestamp", 0) # Kept for internal sorting/CSV but hidden from UI table
             }
             all_txns_for_display.append(txn_data)
 
@@ -593,13 +604,16 @@ def show_admin_audit():
     
     # ------------------ 2. Download Button ------------------
     if not df_all_txns.empty:
+        # Sort data by timestamp before export for logical flow
+        df_all_txns = df_all_txns.sort_values(by="Timestamp (Unix)", ascending=True) 
+        
         csv = df_all_txns.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="Download All Transactions Data (CSV)",
             data=csv,
             file_name='blockchain_event_audit.csv',
             mime='text/csv',
-            help="Download a CSV file containing every transaction recorded on the blockchain."
+            help="Download a CSV file containing every transaction recorded on the blockchain, including the block hash proof."
         )
 
     st.markdown("### All Recorded Transactions (Audit Table)")
@@ -609,10 +623,22 @@ def show_admin_audit():
     else:
         # Display the full, clean DataFrame 
         st.dataframe(
-            df_all_txns.drop(columns=["Timestamp (Unix)"]), # Drop Unix timestamp for cleaner view
+            df_all_txns.drop(columns=["Timestamp (Unix)", "Previous Block Hash"]), 
             use_container_width=True,
-            # Set the order for better readability
-            column_order=["Block Index", "Transaction Type", "Time (Readable)", "Event Name", "Ticket ID", "Quantity/Guests", "Customer Name", "Customer Email", "Verifier"]
+            # Set the order for comprehensive and logical display
+            column_order=[
+                "Block Index", 
+                "Transaction Type", 
+                "Time (Readable)", 
+                "Ticket ID", 
+                "Event Name", 
+                "Customer Name", 
+                "Customer Email", 
+                "Phone Number", 
+                "Quantity/Guests", 
+                "Verifier",
+                "Block Hash (Ledger Proof)" 
+            ]
         )
 
     st.markdown("---")
@@ -641,8 +667,8 @@ def show_admin_audit():
                         "Type": txn.get("type", "N/A"),
                         "Event": txn.get("event", "N/A"),
                         "ID": txn.get("ticket_id", "N/A"),
-                        "Qty": txn.get("quantity", txn.get("num_entering", 1)),
-                        "Customer/Verifier": txn.get("holder", txn.get("verifier", "N/A")),
+                        "Qty/Guests": txn.get("quantity", txn.get("num_entering", 1)),
+                        "Holder/Verifier": txn.get("holder", txn.get("verifier", "N/A")),
                         "Email": txn.get("email", "N/A"),
                         "Time": time.ctime(txn.get("timestamp", 0))
                     }
