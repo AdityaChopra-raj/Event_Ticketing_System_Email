@@ -167,7 +167,7 @@ def show_events():
             st.markdown(f"<div class='event-card'><h3 style='color:white; margin:0;'>{ename}</h3></div>", unsafe_allow_html=True)
             if st.button(f"Select {ename}", key=f"select_{ename}"):
                 st.session_state.event_selected = ename
-                st.experimental_rerun()
+                st.rerun() # FIXED: Changed from st.experimental_rerun()
             st.markdown("</div>", unsafe_allow_html=True) 
 
 def show_event_actions(event_name):
@@ -188,7 +188,7 @@ def show_event_actions(event_name):
         with c1:
             if st.button("⬅ Back to Events"):
                 st.session_state.event_selected = None
-                st.experimental_rerun()
+                st.rerun() # FIXED: Changed from st.experimental_rerun()
         with c2:
             if st.button("Buy Ticket", key="action_buy"):
                 st.session_state.mode = "buy"
