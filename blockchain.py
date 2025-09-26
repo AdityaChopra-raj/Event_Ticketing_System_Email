@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 import time
 import hashlib
 import json
-from events_data import events
+from events_data import events # Import events to calculate capacity
 
 class Blockchain:
     """A single, centralized blockchain to track purchases and verification logs."""
@@ -38,22 +38,26 @@ class Blockchain:
 
     @staticmethod
     def hash_block(block: Dict[str, Any]) -> str:
-        """Creates a SHA-256 hash using deterministic JSON serialization."""
+        """
+        Creates a SHA-256 hash using deterministic JSON serialization.
+        This ensures the hash is the same every time, which is mandatory for chain integrity.
+        """
         temp = block.copy()
+        # Remove hash before calculating it
         temp.pop("hash", None)
         block_string = json.dumps(temp, sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
 
 def get_ticket_status(blockchain_instance, event_name):
     """
-    Reads the blockchain to calculate total purchased, scanned, and remaining capacity.
-    This replaces the mutable state in st.session_state.tickets and events_data.py.
+    Reads the entire blockchain to calculate total purchased, scanned, and remaining capacity.
+    This replaces mutable state dictionaries.
     """
     total_capacity = events[event_name]["capacity"]
     total_purchased = 0
     total_scanned = 0
     ticket_details = {} # ticket_id -> {'qty': x, 'scanned': y}
-    purchased_tickets_cache = {} # ticket_id -> {details} for email lookup
+    purchased_tickets_cache = {} # ticket_id -> {details} for quick email/name lookup
 
     for block in blockchain_instance.chain:
         for txn in block["transactions"]:
@@ -61,11 +65,12 @@ def get_ticket_status(blockchain_instance, event_name):
                 ticket_id = txn.get("ticket_id")
                 if not ticket_id: continue
 
-                # PURCHASE Transaction
+                # PURCHASE Transaction (Sets the initial quantity)
                 if txn.get("type") == "PURCHASE":
                     qty = txn["quantity"]
                     total_purchased += qty
                     ticket_details[ticket_id] = {"qty": qty, "scanned": 0}
+                    # Update cache with holder details
                     purchased_tickets_cache[ticket_id] = {
                         "event": event_name, 
                         "name": txn.get("holder", "N/A"), 
@@ -74,7 +79,7 @@ def get_ticket_status(blockchain_instance, event_name):
                         "phone": txn.get("phone_number", "N/A")
                     }
 
-                # VERIFY Transaction (Immutable Log)
+                # VERIFY Transaction (Logs usage against quantity)
                 elif txn.get("type") == "VERIFY":
                     num_entering = txn.get("num_entering", 0)
                     if ticket_id in ticket_details:
