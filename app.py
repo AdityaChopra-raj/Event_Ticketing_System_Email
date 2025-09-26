@@ -100,11 +100,11 @@ st.markdown("""
 h1 {
     text-align: center;
     color: #E50914; /* Netflix Red */
-    font-size: 6em; 
+    font-size: 3em; /* ADJUSTED: Reduced from 6em to 3em (half size) */
     font-weight: 900;
     letter-spacing: 2px;
     margin-top: 0 !important;       
-    margin-bottom: -15px !important; /* Aggressive negative margin */
+    margin-bottom: -5px !important; /* Adjusted negative margin for smaller font */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
