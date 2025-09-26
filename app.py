@@ -91,6 +91,7 @@ for i, (ename, data) in enumerate(events.items()):
     img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode()
 
+    # Display event card
     col.markdown(f"""
     <div class="event-card">
         <img src="data:image/png;base64,{img_str}" />
@@ -104,11 +105,10 @@ for i, (ename, data) in enumerate(events.items()):
     if col.button(f"Select {ename}", key=f"btn_{i}"):
         st.session_state.selected_event = ename
 
-    # Verify Ticket button under specific events
-    if ename in ["Diwali Dance", "Freshers"]:
-        if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
-            st.session_state.show_verification = True
-            st.session_state.verify_event = ename
+    # Verify Ticket button under each card
+    if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
+        st.session_state.show_verification = True
+        st.session_state.verify_event = ename  # Prefill verification event
 
 st.markdown("</div>", unsafe_allow_html=True)
 selected_event = st.session_state.selected_event
