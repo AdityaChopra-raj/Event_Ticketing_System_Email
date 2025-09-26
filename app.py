@@ -7,15 +7,23 @@ import os
 from io import BytesIO
 import base64
 
+# ---------------------- SESSION STATE INIT ----------------------
+if "view" not in st.session_state:
+    st.session_state.view = "events"
+if "selected_event" not in st.session_state:
+    st.session_state.selected_event = None
+if "action" not in st.session_state:
+    st.session_state.action = "Buy Ticket"
+
 # Initialize blockchain
 if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
 blockchain = st.session_state.blockchain
 
-# Page config
+# ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
 
-# --- CSS for Netflix-style layout and centered buttons ---
+# ---------------------- CSS ----------------------
 st.markdown("""
 <style>
 div.stButton > button {
@@ -66,7 +74,7 @@ div.stButton > button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# --- Netflix-themed Headings ---
+# ---------------------- HEADINGS ----------------------
 st.markdown("""
 <h1 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
            font-size:48px;font-weight:bold;letter-spacing:2px;margin-bottom:10px;
@@ -79,22 +87,13 @@ st.markdown("""
            text-shadow:1px 1px 3px #000;'>Select Your Event</h2>
 """, unsafe_allow_html=True)
 
-# --- Session State ---
-if "view" not in st.session_state:
-    st.session_state.view = "events"
-if "selected_event" not in st.session_state:
-    st.session_state.selected_event = None
-if "action" not in st.session_state:
-    st.session_state.action = "Buy Ticket"
-
-# --- Back Button ---
+# ---------------------- BACK BUTTON ----------------------
 if st.session_state.view == "event_detail":
     if st.button("← Back to Events"):
         st.session_state.view = "events"
         st.session_state.selected_event = None
-        st.experimental_rerun()
 
-# --- Display Event Cards ---
+# ---------------------- EVENT CARDS ----------------------
 st.markdown("<div style='text-align:center;'>", unsafe_allow_html=True)
 cols = st.columns(4)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -137,11 +136,10 @@ for i, (ename, data) in enumerate(events.items()):
             if col.button(f"Select {ename}", key=f"btn_{i}"):
                 st.session_state.selected_event = ename
                 st.session_state.view = "event_detail"
-                st.experimental_rerun()
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# --- Event Detail Section ---
+# ---------------------- EVENT DETAIL ----------------------
 if st.session_state.view == "event_detail" and st.session_state.selected_event:
     selected_event = st.session_state.selected_event
 
@@ -153,11 +151,11 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
         <span style='color:#E50914; font-weight:bold; margin-right:20px;'>Tickets Scanned: {events[selected_event]['tickets_scanned']}</span>\
         <span style='color:#E50914; font-weight:bold;'>Remaining Capacity: {events[selected_event]['capacity']}</span></div>", unsafe_allow_html=True)
 
-    # --- Action Choice ---
+    # ---------------------- ACTION CHOICE ----------------------
     action = st.radio("Choose an action", ["Buy Ticket", "Verify Ticket"], horizontal=True)
     st.session_state.action = action
 
-    # --- Buy Ticket ---
+    # ---------------------- BUY TICKET ----------------------
     if st.session_state.action == "Buy Ticket":
         st.markdown("### Enter Your Details to Buy Ticket")
         name = st.text_input("Name", key="name")
@@ -196,7 +194,7 @@ if st.session_state.view == "event_detail" and st.session_state.selected_event:
                                    file_name=f"{selected_event}_ticket_{ticket_id}.txt", mime="text/plain")
                 st.experimental_rerun()
 
-    # --- Verify Ticket ---
+    # ---------------------- VERIFY TICKET ----------------------
     elif st.session_state.action == "Verify Ticket":
         st.markdown("<hr>", unsafe_allow_html=True)
         st.markdown(f"<h3 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;\
