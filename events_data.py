@@ -1,4 +1,5 @@
 events = {
+    # Added 'images/' prefix for consistency
     "Navratri Pooja": {
         "image": "images/navratri.jpg",
         "capacity": 150
