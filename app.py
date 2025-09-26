@@ -15,6 +15,60 @@ blockchain = st.session_state.blockchain
 # Page config
 st.set_page_config(page_title="Event Ticket Portal", layout="wide", page_icon="🎫")
 
+# --- Top navigation button to Ticket Verification ---
+st.markdown("""
+<div style='text-align:center; margin-bottom:20px;'>
+    <a href="/verify_ticket" target="_blank">
+        <button style='background-color:#E50914;color:white;font-weight:bold;padding:10px 20px;
+                       border-radius:5px;font-size:16px;cursor:pointer;box-shadow:2px 2px 6px #aaa;
+                       transition: transform 0.2s;'>
+            Go to Ticket Verification
+        </button>
+    </a>
+</div>
+""", unsafe_allow_html=True)
+
+# --- CSS for hover effects and Netflix style ---
+st.markdown("""
+<style>
+div.stButton > button {
+    background-color: #E50914;
+    color: white;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 5px;
+    width: 250px;
+    margin: 10px auto;
+    display: block;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    box-shadow: 2px 2px 6px #aaa;
+    transition: transform 0.2s;
+}
+div.stButton > button:hover {
+    transform: scale(1.05);
+}
+a button:hover {
+    transform: scale(1.05);
+}
+.event-card {
+    display: inline-block;
+    text-align: center;
+    margin: 10px;
+}
+.event-card img {
+    width: 250px;
+    height: 140px;
+    border-radius: 8px;
+    box-shadow: 2px 2px 6px #aaa;
+    transition: transform 0.2s;
+}
+.event-card img:hover {
+    transform: scale(1.05);
+}
+</style>
+""", unsafe_allow_html=True)
+
 # --- Netflix-themed Headings ---
 st.markdown("""
 <h1 style='text-align:center;
@@ -43,44 +97,6 @@ st.markdown("""
            text-shadow: 1px 1px 3px #000000;'>
 Select Your Event
 </h2>
-""", unsafe_allow_html=True)
-
-# CSS for Netflix-style buttons
-st.markdown("""
-<style>
-div.stButton > button {
-    background-color: #E50914;
-    color: white;
-    font-weight: bold;
-    padding: 8px 12px;
-    border-radius: 5px;
-    width: 250px;
-    margin: 10px auto;
-    display: block;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    box-shadow: 2px 2px 6px #aaa;
-    transition: transform 0.2s;
-}
-div.stButton > button:hover {
-    transform: scale(1.05);
-}
-.event-card {
-    display: inline-block;
-    text-align: center;
-    margin: 10px;
-}
-.event-card img {
-    width: 250px;
-    height: 140px;
-    border-radius: 8px;
-    box-shadow: 2px 2px 6px #aaa;
-    transition: transform 0.2s;
-}
-.event-card img:hover {
-    transform: scale(1.05);
-}
-</style>
 """, unsafe_allow_html=True)
 
 # --- Display events as Netflix-style cards ---
@@ -163,3 +179,4 @@ if selected_event:
                 file_name=f"{selected_event}_ticket_{ticket_id}.txt",
                 mime="text/plain"
             )
+
