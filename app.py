@@ -20,7 +20,24 @@ except KeyError:
     EMAIL_ADDRESS = "placeholder@example.com"
     EMAIL_PASSWORD = "app_password_placeholder"
     EMAIL_SECRET_LOADED = False
-    st.warning("⚠️ Email secrets not loaded. Email functionality is disabled.\nTo enable, provide `[email] address` and `password` in `secrets.toml`.")
+    
+    # -----------------------------------------------------------
+    # ADDED: Detailed instructions for the user to fix the secrets file
+    # -----------------------------------------------------------
+    st.error("""
+        ⚠️ **EMAIL FUNCTIONALITY DISABLED** (Required secrets are missing)
+        
+        To enable emailing, you must create a file named `secrets.toml` in your Streamlit app directory 
+        and add the following content (using a Gmail **App Password** for security):
+        
+        ```toml
+        [email]
+        address = "your_sending_email@gmail.com"
+        password = "your_generated_app_password" 
+        ```
+        
+        Once the file is saved correctly, restart your app.
+    """, icon="🚫")
 
 
 def send_email(to_email, subject, body):
@@ -38,6 +55,7 @@ def send_email(to_email, subject, body):
     msg.attach(MIMEText(body, 'plain'))
 
     try:
+        # Use secure SMTP connection on port 465
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
