@@ -70,7 +70,7 @@ st.markdown("""
 
 # --- Session State ---
 if "view" not in st.session_state:
-    st.session_state.view = "events"  # events view or event_detail
+    st.session_state.view = "events"
 if "selected_event" not in st.session_state:
     st.session_state.selected_event = None
 if "show_verification" not in st.session_state:
@@ -78,7 +78,7 @@ if "show_verification" not in st.session_state:
 if "verify_event" not in st.session_state:
     st.session_state.verify_event = None
 
-# --- Back button ---
+# --- Back Button ---
 if st.session_state.view == "event_detail":
     if st.button("← Back to Events"):
         st.session_state.view = "events"
@@ -101,16 +101,19 @@ for i, (ename, data) in enumerate(events.items()):
     img.save(buffered, format="PNG")
     img_str = base64.b64encode(buffered.getvalue()).decode()
 
-    # Fade others when one is selected
-    if st.session_state.view == "event_detail" and st.session_state.selected_event != ename:
-        opacity = 0.1
-        scale = 0.8
-    else:
+    # Style for selected/other cards
+    if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
+        style = "transform: scale(1.5); z-index: 10; transition: all 0.5s; margin:0 auto;"
         opacity = 1
-        scale = 1
+    elif st.session_state.view == "event_detail":
+        style = "transform: scale(0.8); opacity:0.2; transition: all 0.5s;"
+        opacity = 0.2
+    else:
+        style = "transform: scale(1); transition: all 0.5s;"
+        opacity = 1
 
     col.markdown(f"""
-    <div class="event-card" style="opacity:{opacity}; transform: scale({scale}); transition: all 0.5s;">
+    <div class="event-card" style="{style}; opacity:{opacity};">
         <img src="data:image/png;base64,{img_str}" />
         <h4 style='margin:5px 0 2px 0;color:white;'>{ename}</h4>
         <p style='font-size:12px;margin:2px 0;color:#E50914;'>Tickets Scanned: <b>{data['tickets_scanned']}</b></p>
@@ -118,13 +121,11 @@ for i, (ename, data) in enumerate(events.items()):
     </div>
     """, unsafe_allow_html=True)
 
-    # Buttons only active for events view
     if st.session_state.view == "events":
         if col.button(f"Select {ename}", key=f"btn_{i}"):
             st.session_state.selected_event = ename
             st.session_state.view = "event_detail"
 
-    # Verify Ticket button only for selected event
     if st.session_state.view == "event_detail" and st.session_state.selected_event == ename:
         if col.button(f"Verify Ticket - {ename}", key=f"verify_{i}"):
             st.session_state.show_verification = True
@@ -135,7 +136,6 @@ st.markdown("</div>", unsafe_allow_html=True)
 # --- Event Detail Section ---
 if st.session_state.view == "event_detail" and st.session_state.selected_event:
     selected_event = st.session_state.selected_event
-
     st.markdown(f"""
     <h2 style='text-align:center;color:#E50914;font-family:Helvetica, Arial, sans-serif;
                font-size:36px;font-weight:bold;margin-top:20px;text-shadow:1px 1px 3px #000;'>
