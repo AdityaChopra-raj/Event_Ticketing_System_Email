@@ -1,30 +1,31 @@
+# --- Event Data Configuration ---
+
+# Using placeholder images that follow the Netflix red/dark aesthetic
+BASE_PLACEHOLD_URL = "https://placehold.co/300x450/E50914/FFFFFF?text="
+
 events = {
-    "Navratri Pooja": {
-        "image": "images/navratri.jpg",
-        "capacity": 150,
-        "description": "Celebrate the nine nights of devotion, culture, and vibrant Garba dances. Join us for traditional ceremonies and joyous community gathering.",
-        "time": "7:00 PM onwards",
-        "location": "Central Auditorium, Block 1"
+    "Navratri Dance Night": {
+        "description": "Celebrate the nine nights of Navratri with Garba and Dandiya Raas! Featuring live music, traditional attire, and a massive dance floor.",
+        "location": "University Main Ground / Community Hall A",
+        "time": "Saturday, October 12, 2024, 7:00 PM onwards",
+        "image": BASE_PLACEHOLD_URL + "Navratri+Dance"
     },
-    "Diwali Dance": {
-        "image": "images/diwali.jpg",
-        "capacity": 150,
-        "description": "A dazzling night of lights, music, and spectacular dance performances to celebrate the festival of Diwali. Enjoy delicious food and festive cheer.",
-        "time": "6:30 PM - 10:00 PM",
-        "location": "Open Air Theatre (OAT)"
+    "Diwali Fest & Dance": {
+        "description": "The festival of lights celebration! Includes cultural performances, traditional sweet stalls, fireworks display, and a special DJ night for open dancing.",
+        "location": "Campus Central Lawn",
+        "time": "Friday, November 1, 2024, 6:00 PM",
+        "image": BASE_PLACEHOLD_URL + "Diwali+Fest"
     },
-    "Freshers": {
-        "image": "images/freshers.jpg",
-        "capacity": 150,
-        "description": "Welcome to the new beginning! An unforgettable night of music, games, and introductions to kick off the new academic year.",
-        "time": "5:00 PM - 9:00 PM",
-        "location": "Student Convention Center, Phase I"
+    "Freshers Party": {
+        "description": "Welcome the new batch! A night of music, introductions, talent showcases, and dinner to kick off the academic year. Theme: Neon Glow.",
+        "location": "Auditorium Grand Ballroom",
+        "time": "Friday, September 27, 2024, 8:00 PM",
+        "image": BASE_PLACEHOLD_URL + "Freshers+Party"
     },
-    "Ravan Dehan": {
-        "image": "images/ravan.jpg",
-        "capacity": 150,
-        "description": "Witness the grand spectacle of Ravan Dehan, symbolizing the victory of good over evil. A fiery end to the festive season.",
-        "time": "7:30 PM sharp",
-        "location": "Main Sports Ground (Field A)"
+    "Ravan Dehan Ceremony": {
+        "description": "Witness the burning of the effigy of Ravana on Dussehra, symbolizing the victory of good over evil. Community fair and food vendors available.",
+        "location": "Adjacent Football Field",
+        "time": "Tuesday, October 15, 2024, 7:30 PM",
+        "image": BASE_PLACEHOLD_URL + "Ravan+Dehan"
     }
 }
