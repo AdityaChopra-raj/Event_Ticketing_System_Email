@@ -1,11 +1,13 @@
 import streamlit as st
-from PIL import Image
+# Removed PIL import, using st.image with URLs from events_data
 import uuid
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import time
 import pandas as pd
+import random # Used for proof-of-work placeholder
+
 # IMPORT FIX: Centralized Blockchain and helpers
 from blockchain import Blockchain, get_ticket_status
 from events_data import events 
@@ -22,27 +24,17 @@ except KeyError:
     EMAIL_PASSWORD = "app_password_placeholder"
     EMAIL_SECRET_LOADED = False
     
-    # Updated: Specific warning about the required TOML structure/keys
-    st.error("""
-        ⚠️ **EMAIL FUNCTIONALITY DISABLED** (Required secrets are missing or keys are incorrect)
-        
-        The app failed to load the `[email]` secrets. Please verify that your 
-        `.streamlit/secrets.toml` file has the following *exact* structure:
-        
-        ```toml
-        [email]
-        address = "your_sending_email@gmail.com"
-        password = "your_generated_app_password" 
-        ```
-        
-        Ensure you are using a Gmail **App Password** for security.
+    # Warning ensures the user knows email won't work without configuration
+    st.info("""
+        ⚠️ **Email Functionality Note:** Email sending is disabled because the required 
+        `[email]` secrets were not found. Please configure `.streamlit/secrets.toml`
+        to enable confirmation emails.
     """, icon="🚫")
 
 
 def send_email(to_email, subject, body):
     """Sends confirmation emails."""
     
-    # Do not attempt to send if secrets failed to load
     if not EMAIL_SECRET_LOADED:
         st.info(f"Email skipped: Confirmation for '{to_email}' not sent (Secrets not configured).")
         return
@@ -54,14 +46,13 @@ def send_email(to_email, subject, body):
     msg.attach(MIMEText(body, 'plain'))
 
     try:
-        # Use secure SMTP connection on port 465
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(msg)
         st.toast("Email sent successfully!", icon='📧')
     except Exception as e:
-        # Display a more helpful error message for email delivery issues
-        st.error(f"Error sending email: Check network connection or ensure the App Password is correct and enabled. Error: {e}")
+        # Display helpful error for email delivery issues
+        st.error(f"Error sending email: Check your App Password or email settings. Error: {e}")
 
 
 # ------------------------ APP STATE & INITIALIZATION ------------------------
@@ -69,7 +60,6 @@ if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
 if "mode" not in st.session_state:
     st.session_state.mode = None
-# This cache stores the current ticket status calculated from the blockchain, including customer data.
 if "purchased_tickets_cache" not in st.session_state:
     st.session_state.purchased_tickets_cache = {}
 
@@ -104,9 +94,9 @@ st.markdown("""
 /* Fix Streamlit Header & Content Padding */
 .block-container {
     padding-top: 0rem !important;
-    padding-bottom: 0rem !important;
-    padding-left: 1rem !important; 
-    padding-right: 1rem !important;
+    padding-bottom: 2rem !important; /* Added bottom padding for footer space */
+    padding-left: 2rem !important; 
+    padding-right: 2rem !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
@@ -125,11 +115,11 @@ h1 {
     /* Main Title/Heading (H1) */
     text-align: center;
     color: #E50914; /* Accent Color: Netflix Red */
-    font-size: 3em; 
+    font-size: 3.5em; /* Slightly larger */
     font-weight: 900; /* Bold */
     letter-spacing: 2px;
     margin-top: 5px !important;       
-    margin-bottom: 5px !important;    
+    margin-bottom: 20px !important; /* Added margin here for spacing from top content */
     padding: 0 !important;
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
@@ -148,7 +138,6 @@ p, .stText, .detail-item {
 
 /* Card Image Container (Ensures 2:3 aspect ratio) */
 .event-image-container {
-    padding: 10px; 
     position: relative;
     z-index: 5; 
     aspect-ratio: 2 / 3; /* Structure: 2:3 aspect ratio */
@@ -159,9 +148,8 @@ p, .stText, .detail-item {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
-
 .event-image-container img {
-    border-radius: 4px 4px 0 0; 
+    border-radius: 4px; /* Image corners inside the card */
     width: 100%;
     height: 100%;
     object-fit: cover; 
@@ -170,23 +158,30 @@ p, .stText, .detail-item {
 
 /* Content Cards (Event Cards) */
 .event-card {
-    border-radius: 8px; /* Subtly rounded corners */
+    border-radius: 10px; /* Subtly rounded corners */
     background: #222222; /* Secondary Background: Dark Gray */
-    padding: 15px 5px; 
-    margin-bottom: 15px; 
+    padding: 10px 5px 0px 5px; /* Adjust padding for better look */
+    margin-bottom: 20px; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
     text-align: center; 
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s; /* Transition smoothly */
+    /* Transition smoothly */
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s, background-color 0.3s; 
 }
 
 /* Card Hover Interaction (Crucial) */
 .event-card:hover {
     transform: scale(1.05); /* Slightly scale up (scale-105) */
     /* Prominent box-shadow glow in Accent Color */
-    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.8); 
+    box-shadow: 0 8px 20px rgba(229, 9, 20, 0.9); 
     z-index: 6; 
     background: #333333; /* Slightly lighter on hover */
+    cursor: pointer;
+}
+/* Ensure the link inside the card doesn't ruin the look */
+.event-card a {
+    text-decoration: none;
+    color: white; 
 }
 
 
@@ -195,43 +190,43 @@ div.stButton > button {
     background-color: #E50914; /* Accent Color: Netflix Red */
     color: white; /* Text: White, bold */
     border: none; 
-    padding: 8px 16px; 
-    font-size: 0.95em;
+    padding: 10px 20px; /* Slightly larger padding */
+    font-size: 1em;
     border-radius: 6px;
-    margin-top: 10px; 
+    margin-top: 15px; /* Added margin */
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
     font-weight: bold;
+    min-width: 150px; /* Ensure buttons are wide enough */
 }
 div.stButton > button:hover {
     background-color: #f6121d; /* Slightly darken/brighter red */
-    transform: translateY(-1px); /* Subtle vertical lift (translate-y-[-1px]) */
-    box-shadow: 0 4px 6px rgba(229, 9, 20, 0.6); /* Small shadow */
+    transform: translateY(-2px); /* Subtle vertical lift (translate-y-[-1px]) */
+    box-shadow: 0 6px 10px rgba(229, 9, 20, 0.7); /* Small shadow */
 }
 
 
 /* --- Detail View Styles --- */
 .detail-container {
     display: flex;
-    gap: 20px;
+    gap: 30px; /* Increased gap */
     padding: 20px; 
-    margin-top: 10px; 
+    margin-top: 30px; 
     margin-bottom: 20px; 
     background-color: #1a1a1a; 
     border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
 }
-
 .event-description-box h2 {
-    color: #E50914; 
+    color: white; /* Title inside detail box */
     margin-top: 0;
     margin-bottom: 10px; 
     font-size: 2.5em;
+    text-align: left; /* Must be left-aligned in detail view */
 }
 .event-description-box .detail-item strong {
     color: #E50914; 
 }
-
 
 /* --------------------------------------------------------------------------------- */
 /* ---- 5. CONTAINERS & STATUS BARS (Based on Canvas Section 5) ---- */
@@ -248,22 +243,39 @@ div.stButton > button:hover {
     /* Thick, vertical Accent Color stripe on the left edge */
     border-left: 8px solid #E50914; 
     transition: all 0.3s;
+    line-height: 2;
+    font-weight: bold;
 }
 
-/* Floating Audit Button Styling (Also uses primary button style) */
-.audit-button-container .stButton > button {
+/* Floating Audit Button Positioning (bottom right) */
+.audit-button-container {
+    position: fixed;
+    bottom: 20px; /* Space from bottom */
+    right: 20px; /* Space from right */
+    z-index: 1000;
+}
+.audit-button-container a {
+    text-decoration: none;
+}
+/* Apply primary button style to the floating button */
+.audit-button-container button {
     background-color: #E50914 !important; /* Netflix Red */
     color: white !important;
-    padding: 10px 18px !important; 
-    font-size: 1em !important;
+    padding: 12px 24px !important; 
+    font-size: 1.1em !important;
     font-weight: bold !important;
     border: none !important;
-    box-shadow: none !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Add shadow for lift */
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
 }
-.audit-button-container .stButton > button:hover {
+.audit-button-container button:hover {
     background-color: #f6121d !important;
-    transform: translateY(-1px) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 15px rgba(229, 9, 20, 0.7) !important;
 }
+
 
 /* Footer Link Color */
 .footer a {
@@ -303,32 +315,37 @@ def show_events():
     st.session_state.mode = None
     
     # Use fluid columns for responsiveness (Canvas Section 3: Grid System)
-    cols = st.columns(len(events)) 
-    for idx, (ename, edata) in enumerate(events.items()):
-        # Create the navigation URL string for this event card
-        nav_url = f'?event={ename}'
+    # Use st.columns based on event count, max 5 wide
+    num_events = len(events)
+    cols = st.columns(min(num_events, 5)) 
+
+    # Ensure we cycle through the columns correctly if more than 5 events were added
+    event_list = list(events.items())
+    
+    for idx, (ename, edata) in enumerate(event_list):
+        # Determine which column to place the content in
+        col_index = idx % len(cols) 
         
-        with cols[idx]:
-            # 1. Image Container (The top part of the card)
-            st.markdown("<div class='event-image-container'>", unsafe_allow_html=True) 
+        with cols[col_index]:
+            # Create the navigation URL string for this event card
+            nav_url = f'?event={ename}'
             
-            try:
-                img = Image.open(edata["image"])
-                # st.image renders the image component, which is then constrained by the CSS 
-                st.image(img, use_container_width=True)
-            except FileNotFoundError:
-                 # Placeholder ensures missing images still respect the 2:3 ratio
-                 st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
-            
-            st.markdown("</div>", unsafe_allow_html=True) 
-            
-            # 2. Clickable Title Card (Content Card: Secondary Background, Hover Interaction)
+            # 1. Clickable Title Card (Content Card: Secondary Background, Hover Interaction)
             st.markdown(f"""
+            <a href="{nav_url}" style="text-decoration:none;">
             <div class='event-card'>
-                <a href="{nav_url}">
-                    <h3 style='color:white; margin:0;'>{ename}</h3>
-                </a>
+                <div class='event-image-container'>
+            """, unsafe_allow_html=True) 
+            
+            # Use st.image with the URL defined in events_data.py
+            image_url = edata.get("image", "https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing")
+            st.image(image_url, use_container_width=True)
+
+            st.markdown(f"""
+                </div> 
+                <h3 style='color:white; margin:10px 0 15px 0;'>{ename}</h3>
             </div>
+            </a>
             """, unsafe_allow_html=True) 
 
 
@@ -341,7 +358,7 @@ def show_event_actions(event_name):
     edata = events[event_name]
     remaining, scanned, _ = capacity_info(event_name)
 
-    # Use columns for Netflix layout: Image on Left, Details/Actions on Right
+    # Use markdown for the detail container to apply custom CSS
     st.markdown("<div class='detail-container'>", unsafe_allow_html=True)
     
     # Set column widths: 1 for image, 2.5 for details
@@ -349,14 +366,10 @@ def show_event_actions(event_name):
 
     with col_image:
         # Image Card (Left Side)
-        st.markdown("<div class='event-image-card'>", unsafe_allow_html=True)
-        try:
-            img = Image.open(edata["image"])
-            # use_container_width=True combined with the .event-image-card CSS ensures 2:3 ratio
-            st.image(img, use_container_width=True)
-        except FileNotFoundError:
-            # Placeholder for detail view
-            st.image("https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing", use_container_width=True)
+        st.markdown("<div class='event-image-card' style='max-width:300px;'>", unsafe_allow_html=True)
+        # Use st.image with the URL defined in events_data.py
+        image_url = edata.get("image", "https://placehold.co/300x450/E50914/FFFFFF?text=Image+Missing")
+        st.image(image_url, use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_details:
@@ -374,8 +387,8 @@ def show_event_actions(event_name):
         # Display statistics (Canvas Section 5: Info/Status Boxes)
         st.markdown(f"""
         <div class='event-stats'>
-            <div>Available Tickets: {remaining}</div>
-            <div>No. of guests in venue: {scanned}</div>
+            <div style='font-size:1.2em;'>Available Tickets: <span style='color:#E50914;'>{remaining}</span></div>
+            <div style='font-size:1.2em;'>Guests Checked In: <span style='color:white;'>{scanned}</span></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -433,6 +446,8 @@ def buy_tickets(event_name, remaining):
             st.error("Not enough remaining capacity")
             return
             
+        # Simulate Proof of Work by generating a dummy proof number
+        proof_of_work = random.randint(1000, 9999) 
         ticket_id = str(uuid.uuid4())[:8].upper()
         
         # 1. Add immutable PURCHASE transaction to the ledger
@@ -448,7 +463,8 @@ def buy_tickets(event_name, remaining):
         })
         
         # 2. Mine a new block
-        st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"]) 
+        # Pass the dummy proof to the mining function
+        st.session_state.blockchain.create_block(proof=proof_of_work, previous_hash=st.session_state.blockchain.last_block["hash"]) 
         
         st.success(f"Purchase Confirmed! Your Ticket ID is: **{ticket_id}**. Check your email.")
         
@@ -508,6 +524,9 @@ def verify_tickets(event_name):
             st.error(f"❌ Cannot check in {num_entering} guests. Only {remaining_to_use} tickets remain for this Ticket ID (Used: {scanned_tickets}/{total_tickets}).")
             return
             
+        # Simulate Proof of Work by generating a dummy proof number
+        proof_of_work = random.randint(1000, 9999) 
+        
         # 5. Process Check-in (Add VERIFY transaction and mine block)
         st.session_state.blockchain.add_transaction({
             "type": "VERIFY", 
@@ -517,7 +536,8 @@ def verify_tickets(event_name):
             "verifier": "Main Portal Check-In", 
             "timestamp": time.time()
         })
-        st.session_state.blockchain.create_block(st.session_state.blockchain.last_block["hash"])
+        # Pass the dummy proof to the mining function
+        st.session_state.blockchain.create_block(proof=proof_of_work, previous_hash=st.session_state.blockchain.last_block["hash"])
         
         # 6. Recalculate status and display success
         _, _, _, new_ticket_details, _ = get_ticket_status(st.session_state.blockchain, event_name)
@@ -669,10 +689,10 @@ def show_admin_audit():
         # Calculate the display index 
         block_index = len(blockchain_data) - 1 - i
         
-        # Applying the Secondary Background and subtle rounding to the Expander
         with st.expander(f"Block #{block_index} (Index: {block['index']}) - {len(block['transactions'])} Transactions", expanded=(i == 0)):
             
             # Display core block metadata
+            st.markdown(f"**Proof-of-Work:** `{block.get('proof', 'N/A')}`") # Added proof display
             st.markdown(f"**Timestamp:** `{time.ctime(block['timestamp'])}`")
             st.code(f"Hash: {block['hash']}", language='text')
             st.code(f"Previous Hash: {block['previous_hash']}", language='text')
