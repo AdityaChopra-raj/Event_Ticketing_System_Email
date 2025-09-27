@@ -87,233 +87,188 @@ if event_selected and event_selected not in events:
     event_selected = None
 
 
-# ------------------------ NETFLIX-THEME STYLING (Aggressive Spacing Fixes Applied) ------------------------
+# ------------------------ NETFLIX-THEME STYLING (Integrated Canvas Design) ------------------------
 st.markdown("""
 <style>
-/* Base Dark Theme & Font */
+/* --------------------------------------------------------------------------------- */
+/* ---- 1. COLOR PALETTE & BASE STYLES (Based on Canvas Section 1) ---- */
+/* --------------------------------------------------------------------------------- */
 .stApp {
-    background-color: #141414; /* Deep charcoal background */
-    color: white;
-    font-family: 'Inter', sans-serif;
-    /* Ensure the app itself uses no padding/margin */
+    background-color: #141414; /* Background (Primary): Deep Charcoal */
+    color: white; /* Foreground (Text): Pure White */
+    font-family: 'Inter', sans-serif; /* Font Family: sans-serif */
     padding: 0 !important; 
     margin: 0 !important;
 }
 
-/* ----------------------- FIX: ELIMINATE ALL EMPTY SPACE ----------------------- */
-/* Targets the main content block that Streamlit creates */
+/* Fix Streamlit Header & Content Padding */
 .block-container {
     padding-top: 0rem !important;
     padding-bottom: 0rem !important;
-    /* Optional: reduce side padding slightly for an 'all-in' feel */
     padding-left: 1rem !important; 
     padding-right: 1rem !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
-
-/* Targets the standard Streamlit header bar to hide it and collapse space */
-/* This is usually the element adding that huge black bar above the title */
 .stApp > header {
-    background-color: #141414 !important; /* Match app background */
+    background-color: #141414 !important; 
     padding: 0 !important;
     margin: 0 !important;
-    height: 0 !important; /* Attempt to collapse the element entirely */
+    height: 0 !important; 
 }
 
-
-/* Specific component targeting to ensure top placement */
-header {
-    margin-top: 0;
-    padding-top: 0;
-}
 
 /* --------------------------------------------------------------------------------- */
-
-/* *** NEW TITLE SPACING FIX *** */
+/* ---- 2. TYPOGRAPHY (Based on Canvas Section 2) ---- */
+/* --------------------------------------------------------------------------------- */
 h1 {
+    /* Main Title/Heading (H1) */
     text-align: center;
-    color: #E50914; /* Netflix Red */
+    color: #E50914; /* Accent Color: Netflix Red */
     font-size: 3em; 
-    font-weight: 900;
+    font-weight: 900; /* Bold */
     letter-spacing: 2px;
-    /* Tighter vertical margin for a cleaner, closer fit to the top */
     margin-top: 5px !important;       
     margin-bottom: 5px !important;    
-    padding: 0 !important; /* Ensure no internal padding interferes */
+    padding: 0 !important;
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
+
+/* Body Text (Modified Streamlit Text/Paragraphs) */
+p, .stText, .detail-item {
+    color: #CCCCCC; /* Body Text: Light Gray */
+    font-size: 1.1em;
+    line-height: 1.6; /* Generous line-height */
+}
+
+
+/* --------------------------------------------------------------------------------- */
+/* ---- 4. INTERACTIVE ELEMENTS (Cards & Buttons) (Based on Canvas Section 4) ---- */
 /* --------------------------------------------------------------------------------- */
 
-
-/* ----------------------- CARD STYLES (UI/UX FOCUS) ----------------------- */
-
-/* Visual content container for image in the main grid */
+/* Card Image Container (Ensures 2:3 aspect ratio) */
 .event-image-container {
     padding: 10px; 
     position: relative;
     z-index: 5; 
-    /* Softly enforce the 2:3 ratio */
-    aspect-ratio: 2 / 3; 
+    aspect-ratio: 2 / 3; /* Structure: 2:3 aspect ratio */
     overflow: hidden; 
-    /* Set a maximum width for consistency on large screens */
     max-width: 250px; 
-    margin-left: auto; /* Center the image container within the column */
+    margin-left: auto; 
     margin-right: auto;
-    /* Remove any vertical margin here to bring images closer to titles */
     margin-top: 0 !important;
     margin-bottom: 0 !important;
 }
 
-/* Image styling inside the container */
 .event-image-container img {
-    border-radius: 4px 4px 0 0; /* Match Netflix style */
+    border-radius: 4px 4px 0 0; 
     width: 100%;
     height: 100%;
     object-fit: cover; 
 }
 
 
-/* Event Title Card - Visual content container */
+/* Content Cards (Event Cards) */
 .event-card {
-    border-radius: 8px;
-    background: #222; 
+    border-radius: 8px; /* Subtly rounded corners */
+    background: #222222; /* Secondary Background: Dark Gray */
     padding: 15px 5px; 
-    /* Tighten up space between the card and the next element */
     margin-bottom: 15px; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
     text-align: center; 
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s; /* Transition smoothly */
 }
 
-/* Link/Title styling */
-.event-card a {
-    text-decoration: none !important; 
-    color: white !important; 
-    font-weight: 700;
-    display: block; 
-}
-
-/* Netflix Red Glow and Zoom on Hover */
+/* Card Hover Interaction (Crucial) */
 .event-card:hover {
-    transform: scale(1.05); 
-    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.6); 
+    transform: scale(1.05); /* Slightly scale up (scale-105) */
+    /* Prominent box-shadow glow in Accent Color */
+    box-shadow: 0 8px 16px rgba(229, 9, 20, 0.8); 
     z-index: 6; 
-    background: #333; 
+    background: #333333; /* Slightly lighter on hover */
+}
+
+
+/* Primary Buttons (Red with vertical lift/shadow on hover) */
+div.stButton > button {
+    background-color: #E50914; /* Accent Color: Netflix Red */
+    color: white; /* Text: White, bold */
+    border: none; 
+    padding: 8px 16px; 
+    font-size: 0.95em;
+    border-radius: 6px;
+    margin-top: 10px; 
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    font-weight: bold;
+}
+div.stButton > button:hover {
+    background-color: #f6121d; /* Slightly darken/brighter red */
+    transform: translateY(-1px); /* Subtle vertical lift (translate-y-[-1px]) */
+    box-shadow: 0 4px 6px rgba(229, 9, 20, 0.6); /* Small shadow */
 }
 
 
 /* --- Detail View Styles --- */
 .detail-container {
     display: flex;
-    /* Reduced gap */
     gap: 20px;
     padding: 20px; 
-    margin-top: 10px; /* Slight top margin for detail view content */
+    margin-top: 10px; 
     margin-bottom: 20px; 
     background-color: #1a1a1a; 
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
 }
 
-.event-image-card {
-    position: relative;
-    border-radius: 8px;
-    overflow: hidden;
-    max-width: 300px; 
-    height: auto;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
-    transition: transform 0.3s;
-    /* Softly enforcing aspect ratio */
-    aspect-ratio: 2 / 3;
-}
-.event-image-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.event-description-box {
-    padding: 10px;
-    color: #ccc;
-    width: 100%; 
-}
 .event-description-box h2 {
     color: #E50914; 
     margin-top: 0;
-    /* Reduced margin below sub-header */
     margin-bottom: 10px; 
     font-size: 2.5em;
-}
-.event-description-box p {
-    font-size: 1.1em;
-    line-height: 1.6;
-    margin-bottom: 15px; /* Reduced paragraph spacing */
-    color: white;
 }
 .event-description-box .detail-item strong {
     color: #E50914; 
 }
 
+
+/* --------------------------------------------------------------------------------- */
+/* ---- 5. CONTAINERS & STATUS BARS (Based on Canvas Section 5) ---- */
+/* --------------------------------------------------------------------------------- */
+
+/* Info/Status Boxes (Event Stats) */
 .event-stats {
-    background-color: #333;
-    padding: 10px;
+    background-color: #222222; /* Dark background */
+    padding: 15px;
     border-radius: 8px;
-    margin-bottom: 20px; /* Reduced margin below stats */
+    margin-top: 20px;
+    margin-bottom: 20px; 
     text-align: center;
-    border-left: 5px solid #E50914;
+    /* Thick, vertical Accent Color stripe on the left edge */
+    border-left: 8px solid #E50914; 
     transition: all 0.3s;
 }
 
-/* Standard Streamlit Button Styling (Red with black thin border) */
-div.stButton > button {
-    background-color: #E50914; 
-    color: white;
-    border: 1px solid black; 
-    padding: 8px 16px; /* Slightly reduced button padding */
-    font-size: 0.95em;
-    border-radius: 6px;
-    margin-top: 10px; /* Reduced margin above buttons */
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    font-weight: bold;
-}
-div.stButton > button:hover {
-    background-color: #f6121d; 
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(229, 9, 20, 0.6); 
-}
-
-.footer {position:fixed;bottom:10px;left:20px;font-size:16px;color:#E50914;}
-
-/* NEW: Floating Button Styles */
-.audit-button-container {
-    position: fixed;
-    bottom: 20px; /* Adjust vertical position */
-    right: 20px; /* Adjust horizontal position */
-    z-index: 1000; /* Ensure it floats above other content */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* Shadow for better visibility */
-    border-radius: 8px;
-    overflow: hidden; /* Contains the button shadow */
-}
-
-/* Target the Streamlit button element within the container */
+/* Floating Audit Button Styling (Also uses primary button style) */
 .audit-button-container .stButton > button {
     background-color: #E50914 !important; /* Netflix Red */
     color: white !important;
-    padding: 10px 18px !important; /* Reduced padding slightly */
+    padding: 10px 18px !important; 
     font-size: 1em !important;
     font-weight: bold !important;
     border: none !important;
     box-shadow: none !important;
-    transition: background-color 0.2s, transform 0.2s;
 }
 .audit-button-container .stButton > button:hover {
     background-color: #f6121d !important;
     transform: translateY(-1px) !important;
 }
 
+/* Footer Link Color */
+.footer a {
+    color: #E50914 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -347,7 +302,7 @@ def show_events():
     """
     st.session_state.mode = None
     
-    # Use fluid columns for responsiveness
+    # Use fluid columns for responsiveness (Canvas Section 3: Grid System)
     cols = st.columns(len(events)) 
     for idx, (ename, edata) in enumerate(events.items()):
         # Create the navigation URL string for this event card
@@ -367,11 +322,11 @@ def show_events():
             
             st.markdown("</div>", unsafe_allow_html=True) 
             
-            # 2. Clickable Title Card (The bottom part of the card, with hover effect)
+            # 2. Clickable Title Card (Content Card: Secondary Background, Hover Interaction)
             st.markdown(f"""
             <div class='event-card'>
                 <a href="{nav_url}">
-                    <h3 style='color:inherit; margin:0;'>{ename}</h3>
+                    <h3 style='color:white; margin:0;'>{ename}</h3>
                 </a>
             </div>
             """, unsafe_allow_html=True) 
@@ -416,7 +371,7 @@ def show_event_actions(event_name):
         # Display Description
         st.markdown(f"<p>{edata['description']}</p>", unsafe_allow_html=True)
         
-        # Display statistics
+        # Display statistics (Canvas Section 5: Info/Status Boxes)
         st.markdown(f"""
         <div class='event-stats'>
             <div>Available Tickets: {remaining}</div>
@@ -427,14 +382,16 @@ def show_event_actions(event_name):
         if st.session_state.mode is None:
             c1, c2, c3 = st.columns(3)
             with c1:
-                # Back button now clears the event query param
+                # Back button
                 if st.button("⬅ Back to Events"):
                     st.query_params.clear()
                     st.rerun() 
             with c2:
+                # Primary Button Style
                 if st.button("Buy Ticket", key="action_buy"):
                     st.session_state.mode = "buy"
             with c3:
+                # Primary Button Style
                 if st.button("Check-In", key="action_verify"): 
                     st.session_state.mode = "verify"
         else:
@@ -464,6 +421,7 @@ def buy_tickets(event_name, remaining):
         phone_number = st.text_input("Phone Number", key="buy_phone") 
         qty = st.number_input("No. of Tickets (max 10)", min_value=1, max_value=10, value=1, key="buy_qty")
         
+        # Primary Button Style
         submitted = st.form_submit_button("Confirm Purchase")
 
     if submitted:
@@ -517,6 +475,7 @@ def verify_tickets(event_name):
     email_input = st.text_input("Enter Customer Email", help="Required for double-checking customer identity.")
     num_entering = st.number_input("No. of People Entering", min_value=1, value=1, key="verify_num", help="How many people are entering using this ID?")
 
+    # Primary Button Style
     if st.button("Process Check-In"):
         if not ticket_id or not email_input:
             st.warning("Please enter both Ticket ID and Customer Email.")
@@ -592,8 +551,6 @@ def show_admin_audit():
     """
     Renders a detailed view of the entire blockchain ledger for auditing, 
     including a downloadable CSV of all transactions.
-    
-    FIXED: Now explicitly joins customer purchase data to VERIFY transactions for a complete view.
     """
     st.subheader("🔒 Blockchain Audit Ledger")
     st.markdown("---")
@@ -601,7 +558,7 @@ def show_admin_audit():
     blockchain_data = st.session_state.blockchain.chain
     all_txns_for_display = []
     
-    # Back button to return to the main event list
+    # Primary Button Style
     if st.button("⬅ Back to Events Dashboard"):
         st.query_params.clear()
         st.rerun()
@@ -611,7 +568,6 @@ def show_admin_audit():
         return
         
     # NEW: 1. Generate the customer purchase information map once (ticket_id -> customer details)
-    # We use the helper function to calculate the full customer map across ALL blocks/events
     _, _, _, _, customer_info_map = get_ticket_status(st.session_state.blockchain, None)
 
 
@@ -660,9 +616,6 @@ def show_admin_audit():
                     txn_data["Customer Name"] = customer_details.get("name", "N/A")
                     txn_data["Customer Email"] = customer_details.get("email", "N/A")
                     txn_data["Phone Number"] = customer_details.get("phone_number", "N/A")
-                # Note: The original quantity is part of the customer_info_map, 
-                # but we prefer to show the purchase quantity only on the PURCHASE row,
-                # and the guests checked in (num_entering) on the VERIFY row.
 
             all_txns_for_display.append(txn_data)
 
@@ -716,6 +669,7 @@ def show_admin_audit():
         # Calculate the display index 
         block_index = len(blockchain_data) - 1 - i
         
+        # Applying the Secondary Background and subtle rounding to the Expander
         with st.expander(f"Block #{block_index} (Index: {block['index']}) - {len(block['transactions'])} Transactions", expanded=(i == 0)):
             
             # Display core block metadata
@@ -760,7 +714,8 @@ footer_text = f"Blocks Created:{blocks_count} | Purchase Txns:{purchase_count} |
 
 # Link in the footer to the audit view
 audit_link_footer = f"<a href='?view=admin' style='color:#E50914; text-decoration:none; font-weight:bold;'>View Audit Ledger</a>"
-st.markdown(f"<div class='footer'>{footer_text} | {audit_link_footer}</div>", unsafe_allow_html=True)
+# The footer div ensures light gray text and the accent link color
+st.markdown(f"<div class='footer' style='color: #CCCCCC; font-size: 14px; position: fixed; bottom: 10px; left: 20px;'>{footer_text} | {audit_link_footer}</div>", unsafe_allow_html=True)
 
 
 # 2. Floating Audit Button (bottom right)
