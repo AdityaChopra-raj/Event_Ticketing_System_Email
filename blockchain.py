@@ -21,7 +21,7 @@ class Blockchain:
         """
         Creates a new Block and adds it to the chain.
         
-        :param proof: The proof of work value (a placeholder in this simple model).
+        :param proof: The proof of work value.
         :param previous_hash: Hash of the previous Block.
         :return: The newly created Block dictionary.
         """
@@ -58,6 +58,34 @@ class Blockchain:
         # Dictionary must be sorted to ensure consistent hashing across runs
         block_string = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
+    
+    @staticmethod
+    def valid_proof(last_proof, proof):
+        """
+        Validates the Proof: Does hash(last_proof, proof) contain 4 leading zeros?
+        
+        :param last_proof: <int> Previous proof
+        :param proof: <int> Current proof
+        :return: <bool> True if correct, False otherwise.
+        """
+        guess = f'{last_proof}{proof}'.encode()
+        guess_hash = hashlib.sha256(guess).hexdigest()
+        # The difficulty target: 4 leading zeros
+        return guess_hash[:4] == "0000"
+
+    def proof_of_work(self, last_proof):
+        """
+        Simple Proof of Work Algorithm:
+         - Find a number (proof) such that when hashed with the previous
+           block's proof, it produces a hash with 4 leading zeros.
+           
+        :param last_proof: <int> The proof from the previous block.
+        :return: <int> The new proof of work.
+        """
+        proof = 0
+        while self.valid_proof(last_proof, proof) is False:
+            proof += 1
+        return proof
 
     @property
     def last_block(self):
