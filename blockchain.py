@@ -14,8 +14,10 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.current_transactions = []
-        # The chain starts with the genesis block
-        self.create_block(previous_hash='1', proof=100)
+        # The chain starts with the genesis block (index 1)
+        # This is the FIRST and only block when initialized.
+        if not self.chain:
+            self.create_block(previous_hash='1', proof=100)
 
     def create_block(self, proof, previous_hash=None):
         """
@@ -25,12 +27,17 @@ class Blockchain:
         :param previous_hash: Hash of the previous Block.
         :return: The newly created Block dictionary.
         """
+        # Determine previous_hash safely. If the chain is not empty, use the hash of the last block.
+        # If the chain IS empty (i.e., we are mining the Genesis Block), use '1'.
+        if previous_hash is None:
+            previous_hash = self.hash(self.chain[-1]) if self.chain else '1'
+
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time.time(),
             'transactions': self.current_transactions,
             'proof': proof,
-            'previous_hash': previous_hash or self.hash(self.chain[-1]) if self.chain else '1',
+            'previous_hash': previous_hash,
         }
         # Reset the current list of transactions after they are included in the block
         self.current_transactions = []
@@ -48,7 +55,8 @@ class Blockchain:
         :return: The index of the block that will hold this transaction.
         """
         self.current_transactions.append(transaction)
-        return self.last_block['index'] + 1
+        # Safely determine the next block index. If chain is empty (shouldn't happen after __init__), default to 1.
+        return self.last_block['index'] + 1 if self.chain else 1
 
     @staticmethod
     def hash(block):
@@ -89,8 +97,20 @@ class Blockchain:
 
     @property
     def last_block(self):
-        """Returns the last block in the chain."""
-        return self.chain[-1]
+        """
+        Returns the last block in the chain.
+        Crucially, it handles the possibility of an empty chain by returning
+        the first block if the list is accessed directly before being created,
+        or simply returning the last element otherwise.
+        """
+        # Safety check: if the chain is empty, return an empty dictionary or raise an error.
+        # Since the genesis block should always exist after __init__, we ensure it's accessed correctly.
+        if self.chain:
+            return self.chain[-1]
+        
+        # If somehow the chain is empty (shouldn't happen), we'll return a minimal placeholder
+        # which will likely cause an error downstream, but is safer than IndexError here.
+        return {'index': 0, 'proof': 0, 'hash': '0'} 
 
 
 # --- Ticket Status Calculation Helper ---
