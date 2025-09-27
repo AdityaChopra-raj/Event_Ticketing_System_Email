@@ -1,102 +1,127 @@
-from typing import List, Dict, Any
-import time
 import hashlib
 import json
-# Import events_data so get_ticket_status can read capacity
-from events_data import events 
+import time
+from uuid import uuid4
+
+# --- Blockchain Implementation ---
 
 class Blockchain:
-    """A single, centralized blockchain to track immutable purchases and verification logs."""
-
+    """
+    A simple, decentralized, immutable ledger system.
+    Stores transactions in blocks and validates chain integrity.
+    """
     def __init__(self):
-        self.chain: List[Dict[str, Any]] = []
-        self.pending_transactions: List[Dict[str, Any]] = []
-        # Creates the first block (Genesis)
-        self.create_block(previous_hash="0") 
+        self.chain = []
+        self.current_transactions = []
+        # Create the genesis block
+        self.create_block(previous_hash='1', proof=100)
 
-    def create_block(self, previous_hash: str):
-        """Mines a new block and adds it to the chain."""
+    def create_block(self, proof, previous_hash=None):
+        """
+        Creates a new Block and adds it to the chain.
+        :param proof: The proof given by the Proof of Work algorithm.
+        :param previous_hash: Hash of previous Block.
+        :return: New Block
+        """
         block = {
-            "index": len(self.chain) + 1,
-            "timestamp": time.time(),
-            "transactions": self.pending_transactions,
-            "previous_hash": previous_hash,
-            "hash": ""
+            'index': len(self.chain) + 1,
+            'timestamp': time.time(),
+            'transactions': self.current_transactions,
+            'proof': proof,
+            'previous_hash': previous_hash or self.hash(self.chain[-1]) if self.chain else '1',
         }
-        # CRITICAL: Use deterministic hashing
-        block["hash"] = self.hash_block(block)
-        self.pending_transactions = []
+        # Reset the current list of transactions
+        self.current_transactions = []
+        # Calculate the hash of the new block and add it to the block dictionary
+        block['hash'] = self.hash(block) 
         self.chain.append(block)
         return block
 
-    def add_transaction(self, transaction: dict):
-        """Adds a new transaction (purchase or verification) to the pending list."""
-        self.pending_transactions.append(transaction)
-        return self.chain[-1]["index"] + 1
+    def add_transaction(self, transaction):
+        """
+        Adds a new transaction to the list of transactions to be mined.
+        :param transaction: <dict> New transaction data.
+        """
+        self.current_transactions.append(transaction)
+        return self.last_block['index'] + 1
+
+    @staticmethod
+    def hash(block):
+        """
+        Creates a SHA-256 hash of a Block.
+        """
+        # We must make sure that the Dictionary is Ordered, or we'll have inconsistent hashes
+        block_string = json.dumps(block, sort_keys=True).encode()
+        return hashlib.sha256(block_string).hexdigest()
 
     @property
     def last_block(self):
+        """Returns the last block in the chain."""
         return self.chain[-1]
 
-    @staticmethod
-    def hash_block(block: Dict[str, Any]) -> str:
-        """
-        Creates a SHA-256 hash using deterministic JSON serialization (sort_keys=True).
-        """
-        temp = block.copy()
-        temp.pop("hash", None)
-        block_string = json.dumps(temp, sort_keys=True).encode()
-        return hashlib.sha256(block_string).hexdigest()
 
-def get_ticket_status(blockchain_instance, event_name):
+# --- Ticket Status Calculation ---
+
+def get_ticket_status(blockchain, event_name=None):
     """
-    Reads the entire blockchain to calculate total purchased, scanned, and remaining capacity.
+    Calculates the real-time status of all tickets based on the immutable ledger.
     
-    Returns: 
-        total_purchased, total_scanned, remaining_capacity, ticket_details, purchased_tickets_cache
-        
-    Note: purchased_tickets_cache contains the customer's email and name from the PURCHASE transaction.
+    Returns:
+        total_purchased (int): Total tickets ever sold for the event.
+        total_scanned (int): Total tickets scanned (checked in).
+        total_remaining (int): Remaining tickets (capacity - total_purchased + scanned).
+        ticket_details (dict): Status map {ticket_id: {qty, scanned}}.
+        purchased_tickets_cache (dict): Customer data map {ticket_id: {name, email, phone}}.
     """
-    if event_name not in events:
-        return 0, 0, 0, {}, {}
-
-    total_capacity = events[event_name]["capacity"]
-    total_purchased = 0
-    total_scanned = 0
-    # ticket_id -> {'qty': x, 'scanned': y}
-    ticket_details = {} 
-    # ticket_id -> {details from PURCHASE txn: email, name, phone, qty}
-    purchased_tickets_cache = {} 
-
-    for block in blockchain_instance.chain:
+    
+    # Initialize the ledger state trackers
+    ticket_details = {}  # {ticket_id: {'qty': N, 'scanned': M}}
+    purchased_tickets_cache = {} # {ticket_id: {'name': S, 'email': E, 'phone_number': P}}
+    
+    # Default initial capacity (assuming a large number if not filtered by event)
+    # NOTE: In a real app, capacity would come from a configuration file per event.
+    MAX_CAPACITY = 500 
+    
+    # Iterate through every block and every transaction to build the current state
+    for block in blockchain.chain:
         for txn in block["transactions"]:
-            # Ensure the transaction belongs to the selected event
-            if txn.get("event") == event_name:
-                ticket_id = txn.get("ticket_id")
-                if not ticket_id: continue
+            
+            # If an event filter is applied, skip transactions for other events
+            if event_name and txn.get("event") != event_name:
+                continue
+                
+            txn_type = txn.get("type")
+            ticket_id = txn.get("ticket_id")
+            
+            if not ticket_id:
+                continue
 
-                # PURCHASE Transaction (Establishes the ticket and its quantity)
-                if txn.get("type") == "PURCHASE":
-                    qty = txn["quantity"]
-                    total_purchased += qty
-                    # Initialize or update details from the purchase (which happens first)
-                    ticket_details[ticket_id] = {"qty": qty, "scanned": ticket_details.get(ticket_id, {}).get("scanned", 0)}
-                    purchased_tickets_cache[ticket_id] = {
-                        "event": event_name, 
-                        "name": txn.get("holder", "N/A"), 
-                        "qty": qty, 
-                        "email": txn.get("email", "N/A"),
-                        "phone": txn.get("phone_number", "N/A")
-                    }
+            if txn_type == "PURCHASE":
+                # Record initial purchase data
+                qty = txn.get("quantity", 0)
+                ticket_details[ticket_id] = {
+                    'qty': qty, 
+                    'scanned': 0
+                }
+                # Cache customer data for verification/auditing later
+                purchased_tickets_cache[ticket_id] = {
+                    'name': txn.get("holder"),
+                    'email': txn.get("email"),
+                    'phone_number': txn.get("phone_number")
+                }
+                
+            elif txn_type == "VERIFY":
+                # Update the check-in count for the ticket_id
+                num_entering = txn.get("num_entering", 0)
+                if ticket_id in ticket_details:
+                    ticket_details[ticket_id]['scanned'] += num_entering
 
-                # VERIFY Transaction (Logs usage)
-                elif txn.get("type") == "VERIFY":
-                    num_entering = txn.get("num_entering", 0)
-                    if ticket_id in ticket_details:
-                        # Increment 'scanned' count based on immutable VERIFY logs
-                        ticket_details[ticket_id]["scanned"] += num_entering
-                        total_scanned += num_entering
-
-    remaining_capacity = total_capacity - total_purchased
+    # --- Final calculations based on the built state ---
     
-    return total_purchased, total_scanned, remaining_capacity, ticket_details, purchased_tickets_cache
+    total_purchased = sum(td['qty'] for td in ticket_details.values())
+    total_scanned = sum(td['scanned'] for td in ticket_details.values())
+    
+    # Calculate remaining capacity based on a hardcoded max capacity for demo purposes
+    total_remaining = MAX_CAPACITY - total_purchased
+    
+    return total_purchased, total_scanned, total_remaining, ticket_details, purchased_tickets_cache
