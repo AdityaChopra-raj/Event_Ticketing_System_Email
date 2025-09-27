@@ -112,15 +112,20 @@ st.markdown("""
     margin-bottom: 0 !important;
 }
 
-/* Targets the header element which often has sticky padding */
+/* Targets the standard Streamlit header bar to hide it and collapse space */
+/* This is usually the element adding that huge black bar above the title */
+.stApp > header {
+    background-color: #141414 !important; /* Match app background */
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 0 !important; /* Attempt to collapse the element entirely */
+}
+
+
+/* Specific component targeting to ensure top placement */
 header {
     margin-top: 0;
     padding-top: 0;
-}
-
-/* Specific component targeting to ensure top placement */
-.stApp > header {
-    padding: 0 !important;
 }
 
 /* --------------------------------------------------------------------------------- */
@@ -132,9 +137,9 @@ h1 {
     font-size: 3em; 
     font-weight: 900;
     letter-spacing: 2px;
-    /* Apply a small, controlled margin top and bottom */
-    margin-top: 10px !important;       
-    margin-bottom: 15px !important;    
+    /* Tighter vertical margin for a cleaner, closer fit to the top */
+    margin-top: 5px !important;       
+    margin-bottom: 5px !important;    
     padding: 0 !important; /* Ensure no internal padding interferes */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
