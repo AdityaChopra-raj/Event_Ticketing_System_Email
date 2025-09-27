@@ -96,6 +96,21 @@ st.markdown("""
     font-family: 'Inter', sans-serif;
 }
 
+/* ----------------------- FIX: ELIMINATE EMPTY SPACE AT TOP ----------------------- */
+/* Target the main container and content wrapper to remove Streamlit's default padding */
+.stApp {
+    padding-top: 0px !important;
+    margin-top: 0px !important;
+}
+
+/* Targets the main content block, which usually has a huge padding-top by default */
+.block-container, header {
+    padding-top: 0px !important;
+    margin-top: 0px !important;
+}
+
+/* --------------------------------------------------------------------------------- */
+
 /* *** SPACING FIX: AGGRESSIVE OVERRIDE *** */
 h1 {
     text-align: center;
@@ -103,7 +118,7 @@ h1 {
     font-size: 3em; 
     font-weight: 900;
     letter-spacing: 2px;
-    margin-top: 0 !important;       
+    margin-top: 5px !important;       /* Adjusted to 5px to give a slight margin from the absolute top */
     margin-bottom: -5px !important; 
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
