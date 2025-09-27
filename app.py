@@ -1,7 +1,7 @@
 import streamlit as st
 import uuid
 from blockchain import Blockchain
-from events_data import EVENTS_DATA
+from events_data import events as EVENTS_DATA
 
 # -----------------------
 # Streamlit Page Config
