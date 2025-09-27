@@ -74,6 +74,7 @@ if "purchased_tickets_cache" not in st.session_state:
     st.session_state.purchased_tickets_cache = {}
 
 
+# CRITICAL: Use layout="wide" to maximize horizontal space
 st.set_page_config(page_title="Event Ticket Portal", layout="wide")
 
 # Get selected event or admin view from query params (URL)
@@ -86,7 +87,7 @@ if event_selected and event_selected not in events:
     event_selected = None
 
 
-# ------------------------ NETFLIX-THEME STYLING (Spacing Fixes Applied) ------------------------
+# ------------------------ NETFLIX-THEME STYLING (Aggressive Spacing Fixes Applied) ------------------------
 st.markdown("""
 <style>
 /* Base Dark Theme & Font */
@@ -94,32 +95,46 @@ st.markdown("""
     background-color: #141414; /* Deep charcoal background */
     color: white;
     font-family: 'Inter', sans-serif;
+    /* Ensure the app itself uses no padding/margin */
+    padding: 0 !important; 
+    margin: 0 !important;
 }
 
-/* ----------------------- FIX: ELIMINATE EMPTY SPACE AT TOP ----------------------- */
-/* Target the main container and content wrapper to remove Streamlit's default padding */
-.stApp {
-    padding-top: 0px !important;
-    margin-top: 0px !important;
+/* ----------------------- FIX: ELIMINATE ALL EMPTY SPACE ----------------------- */
+/* Targets the main content block that Streamlit creates */
+.block-container {
+    padding-top: 0rem !important;
+    padding-bottom: 0rem !important;
+    /* Optional: reduce side padding slightly for an 'all-in' feel */
+    padding-left: 1rem !important; 
+    padding-right: 1rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
-/* Targets the main content block, which usually has a huge padding-top by default */
-.block-container, header {
-    padding-top: 0px !important;
-    margin-top: 0px !important;
+/* Targets the header element which often has sticky padding */
+header {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Specific component targeting to ensure top placement */
+.stApp > header {
+    padding: 0 !important;
 }
 
 /* --------------------------------------------------------------------------------- */
 
-/* *** SPACING FIX: AGGRESSIVE OVERRIDE *** */
+/* *** SPACING FIX: AGGRESSIVE OVERRIDE for main title *** */
 h1 {
     text-align: center;
     color: #E50914; /* Netflix Red */
     font-size: 3em; 
     font-weight: 900;
     letter-spacing: 2px;
-    margin-top: 5px !important;       /* Adjusted to 5px to give a slight margin from the absolute top */
-    margin-bottom: -5px !important; 
+    margin-top: 0px !important;       /* Zero margin above the title */
+    margin-bottom: 0px !important;    /* Zero margin below the title */
+    padding-top: 10px; /* Add slight padding *inside* the H1 block for a tiny visual gap */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
 
@@ -137,6 +152,9 @@ h1 {
     max-width: 250px; 
     margin-left: auto; /* Center the image container within the column */
     margin-right: auto;
+    /* Remove any vertical margin here to bring images closer to titles */
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 /* Image styling inside the container */
@@ -153,7 +171,8 @@ h1 {
     border-radius: 8px;
     background: #222; 
     padding: 15px 5px; 
-    margin-bottom: 30px; 
+    /* Tighten up space between the card and the next element */
+    margin-bottom: 15px; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     overflow: hidden;
     text-align: center; 
@@ -180,9 +199,11 @@ h1 {
 /* --- Detail View Styles --- */
 .detail-container {
     display: flex;
-    gap: 30px;
-    padding: 30px; 
-    margin-bottom: 40px; 
+    /* Reduced gap */
+    gap: 20px;
+    padding: 20px; 
+    margin-top: 10px; /* Slight top margin for detail view content */
+    margin-bottom: 20px; 
     background-color: #1a1a1a; 
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
@@ -213,13 +234,14 @@ h1 {
 .event-description-box h2 {
     color: #E50914; 
     margin-top: 0;
-    margin-bottom: 15px; 
+    /* Reduced margin below sub-header */
+    margin-bottom: 10px; 
     font-size: 2.5em;
 }
 .event-description-box p {
     font-size: 1.1em;
     line-height: 1.6;
-    margin-bottom: 30px; 
+    margin-bottom: 15px; /* Reduced paragraph spacing */
     color: white;
 }
 .event-description-box .detail-item strong {
@@ -228,9 +250,9 @@ h1 {
 
 .event-stats {
     background-color: #333;
-    padding: 15px;
+    padding: 10px;
     border-radius: 8px;
-    margin-bottom: 30px; 
+    margin-bottom: 20px; /* Reduced margin below stats */
     text-align: center;
     border-left: 5px solid #E50914;
     transition: all 0.3s;
@@ -241,10 +263,10 @@ div.stButton > button {
     background-color: #E50914; 
     color: white;
     border: 1px solid black; 
-    padding: 10px 20px;
-    font-size: 1em;
+    padding: 8px 16px; /* Slightly reduced button padding */
+    font-size: 0.95em;
     border-radius: 6px;
-    margin-top: 15px; 
+    margin-top: 10px; /* Reduced margin above buttons */
     cursor: pointer;
     transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
     font-weight: bold;
@@ -272,8 +294,8 @@ div.stButton > button:hover {
 .audit-button-container .stButton > button {
     background-color: #E50914 !important; /* Netflix Red */
     color: white !important;
-    padding: 12px 20px !important;
-    font-size: 1.1em !important;
+    padding: 10px 18px !important; /* Reduced padding slightly */
+    font-size: 1em !important;
     font-weight: bold !important;
     border: none !important;
     box-shadow: none !important;
