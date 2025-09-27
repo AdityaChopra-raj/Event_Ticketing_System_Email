@@ -1,7 +1,7 @@
 import streamlit as st
 import uuid
 from blockchain import Blockchain
-from events_data import events as EVENTS_DATA
+from events_data import events as EVENTS_DATA  # fixed import
 
 # -----------------------
 # Streamlit Page Config
@@ -104,7 +104,8 @@ if role == "Customer Booking":
     st.subheader("Events")
     st.markdown('<div class="event-row">', unsafe_allow_html=True)
     for ename, edata in EVENTS_DATA.items():
-        purchased = sum(s['purchased'] for s in chain.get_ticket_status().values() if s['event']==ename)
+        status = chain.get_ticket_status()
+        purchased = sum(s.get('purchased', 0) for s in status.values() if s.get('event')==ename)
         remaining = edata["capacity"] - purchased
         card_html = f"""
         <div class="event-card">
@@ -127,8 +128,8 @@ if role == "Customer Booking":
     st.write(f"**Time:** {ev['time']}")
     st.write(ev["description"])
     st.write(f"Capacity: {ev['capacity']}")
-    st.write(f"Tickets Sold: {sum(s['purchased'] for s in chain.get_ticket_status().values() if s['event']==choice)}")
-    st.write(f"Guests Checked In: {sum(s['checked_in'] for s in chain.get_ticket_status().values() if s['event']==choice)}")
+    st.write(f"Tickets Sold: {sum(s.get('purchased',0) for s in chain.get_ticket_status().values() if s.get('event')==choice)}")
+    st.write(f"Guests Checked In: {sum(s.get('checked_in',0) for s in chain.get_ticket_status().values() if s.get('event')==choice)}")
 
     tab1, tab2 = st.tabs(["Buy Tickets", "Check-In (Attendant)"])
 
@@ -141,7 +142,7 @@ if role == "Customer Booking":
             if not name or not email:
                 st.error("Name and Email required")
             else:
-                sold = sum(s['purchased'] for s in chain.get_ticket_status().values() if s['event']==choice)
+                sold = sum(s.get('purchased',0) for s in chain.get_ticket_status().values() if s.get('event')==choice)
                 if sold + num > ev["capacity"]:
                     st.error("Not enough capacity!")
                 else:
@@ -161,9 +162,9 @@ if role == "Customer Booking":
             status = chain.get_ticket_status()
             if tid not in status:
                 st.error("Ticket ID not found")
-            elif status[tid]['email'] != email_v:
+            elif status[tid].get('email') != email_v:
                 st.error("Email does not match")
-            elif status[tid]['checked_in'] + guests > status[tid]['purchased']:
+            elif status[tid].get('checked_in',0) + guests > status[tid].get('purchased',0):
                 st.error("Not enough unused entries")
             else:
                 with st.spinner("Mining verification block..."):
@@ -184,9 +185,9 @@ else:
         status = chain.get_ticket_status()
         if tid not in status:
             st.error("❌ Ticket ID not found")
-        elif status[tid]['email'] != email_v:
+        elif status[tid].get('email') != email_v:
             st.error("❌ Email does not match")
-        elif status[tid]['checked_in'] + guests > status[tid]['purchased']:
+        elif status[tid].get('checked_in',0) + guests > status[tid].get('purchased',0):
             st.error("❌ Not enough unused entries")
         else:
             with st.spinner("Mining verification block..."):
