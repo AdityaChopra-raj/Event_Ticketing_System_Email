@@ -125,18 +125,21 @@ header {
 
 /* --------------------------------------------------------------------------------- */
 
-/* *** SPACING FIX: AGGRESSIVE OVERRIDE for main title *** */
+/* *** NEW TITLE SPACING FIX *** */
 h1 {
     text-align: center;
     color: #E50914; /* Netflix Red */
     font-size: 3em; 
     font-weight: 900;
     letter-spacing: 2px;
-    margin-top: 0px !important;       /* Zero margin above the title */
-    margin-bottom: 0px !important;    /* Zero margin below the title */
-    padding-top: 10px; /* Add slight padding *inside* the H1 block for a tiny visual gap */
+    /* Apply a small, controlled margin top and bottom */
+    margin-top: 10px !important;       
+    margin-bottom: 15px !important;    
+    padding: 0 !important; /* Ensure no internal padding interferes */
     font-family: 'Avenir', 'Arial Black', sans-serif; 
 }
+/* --------------------------------------------------------------------------------- */
+
 
 /* ----------------------- CARD STYLES (UI/UX FOCUS) ----------------------- */
 
